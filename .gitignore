@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Dev tools
+.vite/
+*.local
+coverage/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+
+# AI assistants
+.claude/
+CLAUDE.md
+.gemini/
+docs/superpowers/
