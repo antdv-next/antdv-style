@@ -95,7 +95,7 @@ When interpolating a **class name as a CSS selector**, you MUST use `css()` func
 
 ### Why?
 
-`css` in antdv-style returns a **class name string** (e.g. `antdv-css-abc123`). Emotion's tagged template treats string interpolations as "registered styles" and expands them into their CSS content, instead of keeping them as literal selector strings.
+`css` in antdv-style returns a **class name string** (e.g. `acss-abc123`). Emotion's tagged template treats string interpolations as "registered styles" and expands them into their CSS content, instead of keeping them as literal selector strings.
 
 ```typescript
 const useStyles = createStyles(({ css }) => {
@@ -124,7 +124,7 @@ Generated CSS comparison:
 .parent { &:hover .background:red;width:100px;height:100px; { background:blue; } }
 
 /* CORRECT (function call): selector is preserved */
-.parent:hover .antdv-css-abc123 { background: blue; }
+.parent:hover .acss-abc123 { background: blue; }
 ```
 
 ### Rule of Thumb

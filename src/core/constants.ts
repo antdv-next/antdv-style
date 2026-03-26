@@ -4,7 +4,7 @@
  */
 
 /** Default Emotion cache key for CSS class generation. */
-export const DEFAULT_CSS_PREFIX_KEY = 'antdv-css'
+export const DEFAULT_CSS_PREFIX_KEY = 'acss'
 
 /** Default component CSS class prefix, matching antdv-next's defaultPrefixCls. */
 export const DEFAULT_PREFIX_CLS = 'ant'

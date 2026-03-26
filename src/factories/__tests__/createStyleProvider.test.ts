@@ -82,7 +82,7 @@ describe('StyleProvider', () => {
     })
 
     // Should use the parent ThemeProvider's emotion instance
-    expect(wrapper.find('div').attributes('data-cache-key')).toBe('antdv-css')
+    expect(wrapper.find('div').attributes('data-cache-key')).toBe('acss')
   })
 
   it('should render children correctly', () => {

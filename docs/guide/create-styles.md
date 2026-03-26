@@ -95,7 +95,7 @@ const useStyles = createStyles({
 
 ### 原因
 
-antdv-style 中的 `css` 返回的是一个 **class name 字符串**（例如 `antdv-css-abc123`）。Emotion 的模板标签会将字符串插值视为"已注册样式"并展开为其 CSS 内容，而不是保留为字面量选择器字符串。
+antdv-style 中的 `css` 返回的是一个 **class name 字符串**（例如 `acss-abc123`）。Emotion 的模板标签会将字符串插値视为“已注册样式”并展开为其 CSS 内容，而不是保留为字面量选择器字符串。
 
 ```typescript
 const useStyles = createStyles(({ css }) => {
@@ -124,7 +124,7 @@ const useStyles = createStyles(({ css }) => {
 .parent { &:hover .background:red;width:100px;height:100px; { background:blue; } }
 
 /* 正确（函数调用）：选择器被正确保留 */
-.parent:hover .antdv-css-abc123 { background: blue; }
+.parent:hover .acss-abc123 { background: blue; }
 ```
 
 ### 使用规则

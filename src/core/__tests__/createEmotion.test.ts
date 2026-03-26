@@ -8,7 +8,7 @@ describe('createEmotion', () => {
     expect(emotion.cx).toBeDefined()
     expect(emotion.keyframes).toBeDefined()
     expect(emotion.cache).toBeDefined()
-    expect(emotion.cache.key).toBe('antdv-css')
+    expect(emotion.cache.key).toBe('acss')
   })
 
   it('should create an emotion instance with custom key', () => {

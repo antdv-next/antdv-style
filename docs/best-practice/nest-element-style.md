@@ -42,9 +42,9 @@ const useStyles = createStyles(({ css }) => {
 
 ## 工作原理
 
-1. `` css` ` `` 返回一个 class name 字符串（例如 `antdv-css-abc123`）
+1. `` css` ` `` 返回一个 class name 字符串（例如 `acss-abc123`）
 2. `css()` 函数调用使用普通模板字符串，将 `${child}` 视为普通字符串插值
-3. 生成的 CSS 规则：`.parent:hover .antdv-css-abc123 { background: #1677ff }`
+3. 生成的 CSS 规则：`.parent:hover .acss-abc123 { background: #1677ff }`
 
 ## 模板中的用法
 

@@ -42,9 +42,9 @@ Use `css()` **function call** (not `` css`...` `` tagged template) when interpol
 
 ## How It Works
 
-1. `css` `` ` `` returns a class name string (e.g. `antdv-css-abc123`)
+1. `css` `` ` `` returns a class name string (e.g. `acss-abc123`)
 2. `css()` function call with a regular template string treats `${child}` as a plain string interpolation
-3. The generated CSS rule: `.parent:hover .antdv-css-abc123 { background: #1677ff }`
+3. The generated CSS rule: `.parent:hover .acss-abc123 { background: #1677ff }`
 
 ## Usage in Template
 
