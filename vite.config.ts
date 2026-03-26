@@ -10,15 +10,15 @@ export default defineConfig({
   plugins: [
     dts({
       include: ['src/**/*'],
-      outDirs: 'dist/types',
+      outDirs: 'dist',
+      exclude: ["__tests__/**/*", "src/**/*.test.ts", "src/**/*.spec.ts", "__mocks__/**/*"],
       // rollupTypes: true,
     }),
   ],
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      formats: ['es', 'cjs'],
-      fileName: (format) => format === 'es' ? 'es/index.mjs' : 'lib/index.cjs',
+      formats: ['es'],
     },
     rollupOptions: {
       external: ['vue', 'antdv-next'],

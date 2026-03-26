@@ -1,46 +1,42 @@
 {
   "name": "antdv-style",
-  "version": "0.1.0-alpha.1",
+  "version": "1.0.0-rc.1",
   "description": "CSS-in-JS solution for antdv-next",
   "keywords": [
+    "antd",
     "antdv-next",
     "css-in-js",
     "cssinjs",
     "design token",
-    "token-system",
     "emotion",
-    "vue3",
+    "token-system",
     "vue",
-    "antd"
+    "vue3"
   ],
   "homepage": "https://github.com/antdv-next/antdv-style",
   "bugs": {
     "url": "https://github.com/antdv-next/antdv-style/issues"
   },
+  "license": "MIT",
+  "author": "darkingtail(darkingtail@gmail.com)",
   "repository": {
     "type": "git",
     "url": "https://github.com/antdv-next/antdv-style.git"
   },
-  "license": "MIT",
-  "author": "darkingtail(darkingtail@gmail.com)",
-  "sideEffects": false,
-  "type": "module",
-  "main": "./dist/lib/index.cjs",
-  "module": "./dist/es/index.mjs",
-  "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/es/index.mjs",
-      "require": "./dist/lib/index.cjs"
-    }
-  },
   "files": [
     "dist"
   ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
+    "build": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "vue-tsc --noEmit",
@@ -54,10 +50,6 @@
   "dependencies": {
     "@emotion/css": "^11.13.5"
   },
-  "peerDependencies": {
-    "antdv-next": ">=1.0.4",
-    "vue": ">=3.5.0"
-  },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@vue/test-utils": "^2.4.6",
@@ -66,6 +58,7 @@
     "oxfmt": "^0.42.0",
     "oxlint": "^1.57.0",
     "oxlint-tsgolint": "^0.17.4",
+    "tsdown": "^0.21.5",
     "typescript": "^5.9.3",
     "unplugin-dts": "1.0.0-beta.6",
     "vite": "^8.0.3",
@@ -73,5 +66,9 @@
     "vitest": "^4.1.1",
     "vue": "^3.5.31",
     "vue-tsc": "^3.2.6"
+  },
+  "peerDependencies": {
+    "antdv-next": ">=1.0.4",
+    "vue": ">=3.5.0"
   }
 }
