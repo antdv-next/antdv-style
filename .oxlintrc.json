@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    "idea",
+    ".output/**",
+    ".agents",
+    ".claude",
+  ],
+  "plugins": ["vue", "jsdoc", "import", "vitest", "typescript"],
+  "rules": {},
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  }
+}
