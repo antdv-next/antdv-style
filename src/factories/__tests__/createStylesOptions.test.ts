@@ -17,7 +17,7 @@ describe('createStyles options', () => {
         container: { color: 'red' },
       }), { label: 'MyComponent' })
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()
@@ -41,7 +41,7 @@ describe('createStyles options', () => {
         wrapper: { display: 'flex', alignItems: 'center' },
       }), { label: 'Layout' })
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()
@@ -65,7 +65,7 @@ describe('createStyles options', () => {
         box: css({ color: 'green' }),
       }))
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()
@@ -92,7 +92,7 @@ describe('createStyles options', () => {
         box: css({ display: 'flex' }),
       }))
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()
@@ -117,7 +117,7 @@ describe('createStyles options', () => {
         container: { color: 'red', fontSize: '14px' },
       }))
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()
@@ -142,7 +142,7 @@ describe('createStyles options', () => {
         box: { color: 'blue' },
       }), { hashPriority: 'low' })
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()
@@ -167,7 +167,7 @@ describe('createStyles options', () => {
         box: css({ color: 'blue' }),
       }))
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()
@@ -193,7 +193,7 @@ describe('createStyles options', () => {
         header: { backgroundColor: '#fff' },
       }), { label: 'PageHeader', hashPriority: 'low' })
 
-      let result: CreateStylesReturn
+      let result!: CreateStylesReturn
       const Consumer = defineComponent({
         setup() {
           result = useStyles()

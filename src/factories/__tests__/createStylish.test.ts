@@ -23,7 +23,7 @@ describe('createStylish', () => {
       }),
     }))
 
-    let result: ComputedRef<Record<string, string>>
+    let result!: ComputedRef<Record<string, string>>
     const Consumer = defineComponent({
       setup() {
         result = useStylish()
@@ -45,7 +45,7 @@ describe('createStylish', () => {
       brandText: css({ color: token.brandColor }),
     }))
 
-    let result: ComputedRef<Record<string, string>>
+    let result!: ComputedRef<Record<string, string>>
     const Consumer = defineComponent({
       setup() {
         result = useStylish()
@@ -66,7 +66,7 @@ describe('createStylish', () => {
       bg: css({ background: isDarkMode ? '#000' : '#fff' }),
     }))
 
-    let result: ComputedRef<Record<string, string>>
+    let result!: ComputedRef<Record<string, string>>
     const Consumer = defineComponent({
       setup() {
         result = useStylish()

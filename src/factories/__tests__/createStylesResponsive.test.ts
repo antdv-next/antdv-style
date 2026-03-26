@@ -13,7 +13,7 @@ const createStyles = makeCreateStyles(emotion)
 
 describe('createStyles responsive', () => {
   it('should provide responsive helpers in factory callback', () => {
-    let receivedResponsive: ResponsiveUtil
+    let receivedResponsive!: ResponsiveUtil
 
     const useStyles = createStyles(({ responsive }) => {
       receivedResponsive = responsive
@@ -46,7 +46,7 @@ describe('createStyles responsive', () => {
       `,
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const Consumer = defineComponent({
       setup() {
         result = useStyles()

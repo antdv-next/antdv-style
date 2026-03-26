@@ -11,7 +11,7 @@ const createStyles = makeCreateStyles(emotion)
 
 describe('createStyles stylish injection', () => {
   it('should provide stylish in the factory utils', () => {
-    let receivedStylish: Record<string, string>
+    let receivedStylish!: Record<string, string>
 
     const useStyles = createStyles(({ stylish }) => {
       receivedStylish = stylish
@@ -34,7 +34,7 @@ describe('createStyles stylish injection', () => {
   })
 
   it('should pass stylish prop from ThemeProvider', () => {
-    let receivedStylish: Record<string, string>
+    let receivedStylish!: Record<string, string>
 
     const useStyles = createStyles(({ stylish }) => {
       receivedStylish = stylish

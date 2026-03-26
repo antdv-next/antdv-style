@@ -47,7 +47,7 @@ describe('createGlobalStyle', () => {
 
     const useGlobalStyle = createGlobalStyle(({ token }) => ({
       body: {
-        backgroundColor: token.bgColor,
+        backgroundColor: (token as any).bgColor,
       },
     }))
 

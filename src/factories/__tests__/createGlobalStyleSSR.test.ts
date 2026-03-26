@@ -68,7 +68,7 @@ describe('createGlobalStyle SSR', () => {
     const ThemeProvider = createThemeProvider(emotion)
     const createGlobalStyle = makeCreateGlobalStyle(emotion)
 
-    const useGlobalStyle = createGlobalStyle(({ token }) => ({
+    const useGlobalStyle = createGlobalStyle(({ token: _token }) => ({
       body: { backgroundColor: '#fff' },
     }))
 

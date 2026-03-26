@@ -30,7 +30,7 @@ function tokenKeyToCSSVarName(key: string, prefix: string): string {
  * Generate CSS variable declarations from a token object.
  * Default prefix is 'ant' to match antdv-next's CSS variable prefix.
  */
-export function tokenToCSSVar(token: Record<string, string | number | boolean>, options?: CSSVarOptions): string {
+export function tokenToCSSVar(token: Record<string, unknown>, options?: CSSVarOptions): string {
   const prefix = options?.prefix ?? DEFAULT_CSS_VAR_PREFIX
   const declarations: string[] = []
 
@@ -39,7 +39,7 @@ export function tokenToCSSVar(token: Record<string, string | number | boolean>, 
       continue
     }
     const varName = tokenKeyToCSSVarName(key, prefix)
-    declarations.push(`${varName}: ${value};`)
+    declarations.push(`${varName}: ${value as string | number | boolean};`)
   }
 
   return declarations.join('\n')

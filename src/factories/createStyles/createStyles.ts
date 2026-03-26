@@ -99,7 +99,7 @@ export function makeCreateStyles(defaultEmotion: EmotionInstance, options?: Make
       })
 
       // Force eager evaluation so the factory runs immediately
-      styles.value
+      void styles.value
 
       // Use reactive() to auto-unwrap computed refs for convenient direct access:
       //   const s = useStyles() → s.styles.container (no .value needed)

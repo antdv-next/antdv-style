@@ -25,12 +25,12 @@ export function createEmotion(options?: CreateEmotionOptions): EmotionInstance {
   const instance = createEmotionInstance({ key, container })
 
   return {
-    css: instance.css,
-    cx: instance.cx,
-    keyframes: instance.keyframes,
+    css: (...args) => instance.css(...args),
+    cx: (...args) => instance.cx(...args),
+    keyframes: (...args) => instance.keyframes(...args),
     cache: instance.cache,
-    injectGlobal: instance.injectGlobal,
-    flush: instance.flush,
+    injectGlobal: (...args) => instance.injectGlobal(...args),
+    flush: () => instance.flush(),
   }
 }
 

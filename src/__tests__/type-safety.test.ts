@@ -50,7 +50,7 @@ describe('Type Safety', () => {
   it('useTheme should return typed token with CustomToken properties', () => {
     const { ThemeProvider, useTheme } = createInstance()
 
-    let themeResult: ComputedRef<Theme>
+    let themeResult!: ComputedRef<Theme>
     const Consumer = defineComponent({
       setup() {
         themeResult = useTheme()
@@ -73,7 +73,7 @@ describe('Type Safety', () => {
   it('useAntdTheme should return antd token spread at top level with stylish', () => {
     const { ThemeProvider, useAntdTheme } = createInstance()
 
-    let themeResult: ComputedRef<AntdTheme>
+    let themeResult!: ComputedRef<AntdTheme>
     const Consumer = defineComponent({
       setup() {
         themeResult = useAntdTheme()
@@ -94,15 +94,15 @@ describe('Type Safety', () => {
     expect(themeResult.value.colorPrimary).toBe('#1890ff')
     expect(themeResult.value.stylish).toBeDefined()
     // customToken is NOT included in useAntdTheme (matches upstream behavior)
-    expect(themeResult.value.brandColor).toBeUndefined()
+    expect((themeResult.value as any).brandColor).toBeUndefined()
   })
 
   it('FullToken should merge base properties with CustomToken', () => {
-    const sample: FullToken = {
+    const sample = {
       brandColor: '#fff',
       headerHeight: 64,
       colorPrimary: '#1890ff',
-    }
+    } as unknown as FullToken
     expect(sample.brandColor).toBe('#fff')
   })
 })

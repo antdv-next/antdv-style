@@ -10,7 +10,7 @@ const ThemeProvider = createThemeProvider(emotion)
 
 describe('useAntdTheme', () => {
   it('should return token fields spread at top level with stylish', () => {
-    let themeResult: ComputedRef<AntdTheme>
+    let themeResult!: ComputedRef<AntdTheme>
     const Consumer = defineComponent({
       setup() {
         themeResult = useAntdTheme()
@@ -31,7 +31,7 @@ describe('useAntdTheme', () => {
     expect(themeResult.value.colorPrimary).toBe('#1890ff')
     expect(themeResult.value.stylish).toEqual({})
     // No nested token, no appearance/isDarkMode (those come from useThemeMode)
-    expect(themeResult.value.token).toBeUndefined()
+    expect((themeResult.value as any).token).toBeUndefined()
   })
 
   it('should throw when used outside ThemeProvider', () => {

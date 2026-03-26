@@ -28,7 +28,7 @@ describe('createInstance', () => {
       box: css({ display: 'flex' }),
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const Consumer = defineComponent({
       setup() {
         result = useStyles()

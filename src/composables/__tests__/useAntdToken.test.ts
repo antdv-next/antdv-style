@@ -11,7 +11,7 @@ const ThemeProvider = createThemeProvider(emotion)
 
 describe('useAntdToken', () => {
   it('should return only antd base tokens from theme prop', () => {
-    let tokenResult: ComputedRef<AntdToken>
+    let tokenResult!: ComputedRef<AntdToken>
     const Consumer = defineComponent({
       setup() {
         tokenResult = useAntdToken()
@@ -30,7 +30,7 @@ describe('useAntdToken', () => {
     // antdToken should contain the theme base token
     expect(tokenResult.value.colorPrimary).toBe('#1890ff')
     // antdToken should NOT contain customToken values
-    expect(tokenResult.value.myCustomColor).toBeUndefined()
+    expect((tokenResult.value as any).myCustomColor).toBeUndefined()
   })
 
   it('should throw when used outside ThemeProvider', () => {

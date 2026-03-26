@@ -16,7 +16,7 @@ describe('createStyles', () => {
       container: css({ color: 'red' }),
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const Consumer = defineComponent({
       setup() {
         result = useStyles()
@@ -40,7 +40,7 @@ describe('createStyles', () => {
       box: css({ color: props.color }),
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const Consumer = defineComponent({
       setup() {
         result = useStyles(() => ({ color: 'blue' }))
@@ -57,7 +57,7 @@ describe('createStyles', () => {
   })
 
   it('should provide token from ThemeProvider', () => {
-    let receivedToken: Theme
+    let receivedToken!: Theme
     const useStyles = createStyles(({ token }) => {
       receivedToken = token
       return {}
@@ -79,8 +79,8 @@ describe('createStyles', () => {
   })
 
   it('should provide isDarkMode and appearance', () => {
-    let receivedAppearance: Appearance
-    let receivedIsDark: boolean
+    let receivedAppearance!: Appearance
+    let receivedIsDark!: boolean
 
     const useStyles = createStyles(({ appearance, isDarkMode }) => {
       receivedAppearance = appearance
@@ -109,7 +109,7 @@ describe('createStyles', () => {
       box: css({ color: isDarkMode ? 'white' : 'black' }),
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const Consumer = defineComponent({
       setup() {
         result = useStyles()
@@ -135,7 +135,7 @@ describe('createStyles', () => {
       box: css({ color: props.color }),
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const colorRef = ref('red')
 
     const Consumer = defineComponent({

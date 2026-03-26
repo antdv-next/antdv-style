@@ -14,7 +14,7 @@ describe('P1 integration', () => {
 
     const useGlobal = createGlobalStyle(({ token }) => ({
       body: {
-        backgroundColor: token.bgColor,
+        backgroundColor: (token as any).bgColor,
       },
     }))
 
@@ -49,8 +49,8 @@ describe('P1 integration', () => {
       container: css({ padding: '16px' }),
     }))
 
-    let stylishResult: ComputedRef<Record<string, string>>
-    let stylesResult: CreateStylesReturn
+    let stylishResult!: ComputedRef<Record<string, string>>
+    let stylesResult!: CreateStylesReturn
 
     const Consumer = defineComponent({
       setup() {

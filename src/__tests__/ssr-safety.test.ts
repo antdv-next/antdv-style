@@ -17,7 +17,7 @@ describe('SSR Safety', () => {
       container: css`color: red;`,
     }))
 
-    let stylesResult: CreateStylesReturn
+    let stylesResult!: CreateStylesReturn
     const Consumer = defineComponent({
       setup() {
         stylesResult = useStyles()

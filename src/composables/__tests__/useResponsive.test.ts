@@ -40,7 +40,7 @@ describe('useResponsive', () => {
     // Simulate a ~1024px screen: xs=false, sm=true, md=true, lg=true, xl=false, xxl=false
     mockMatchMedia({ xs: false, sm: true, md: true, lg: true, xl: false, xxl: false })
 
-    let result: ResponsiveState
+    let result!: ResponsiveState
     const Consumer = defineComponent({
       setup() {
         result = useResponsive()
@@ -61,7 +61,7 @@ describe('useResponsive', () => {
   it('should detect xxl screen', () => {
     mockMatchMedia({ xs: false, sm: true, md: true, lg: true, xl: true, xxl: true })
 
-    let result: ResponsiveState
+    let result!: ResponsiveState
     const Consumer = defineComponent({
       setup() {
         result = useResponsive()
@@ -79,7 +79,7 @@ describe('useResponsive', () => {
     // Small screen: only xs is true (max-width), all min-width queries are false
     mockMatchMedia({ xs: true, sm: false, md: false, lg: false, xl: false, xxl: false })
 
-    let result: ResponsiveState
+    let result!: ResponsiveState
     const Consumer = defineComponent({
       setup() {
         result = useResponsive()
@@ -96,7 +96,7 @@ describe('useResponsive', () => {
   it('should have all breakpoint keys', () => {
     mockMatchMedia({})
 
-    let result: ResponsiveState
+    let result!: ResponsiveState
     const Consumer = defineComponent({
       setup() {
         result = useResponsive()

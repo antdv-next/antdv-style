@@ -11,7 +11,7 @@ const ThemeProvider = createThemeProvider(emotion)
 
 describe('useTheme', () => {
   it('should return theme token object', () => {
-    let themeResult: ComputedRef<Theme>
+    let themeResult!: ComputedRef<Theme>
     const Consumer = defineComponent({
       setup() {
         themeResult = useTheme()

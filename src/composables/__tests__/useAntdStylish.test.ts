@@ -10,7 +10,7 @@ const ThemeProvider = createThemeProvider(emotion)
 
 describe('useAntdStylish', () => {
   it('should return empty object when no stylish defined', () => {
-    let result: ComputedRef<Record<string, string>>
+    let result!: ComputedRef<Record<string, string>>
     const Consumer = defineComponent({
       setup() {
         result = useAntdStylish()
@@ -26,7 +26,7 @@ describe('useAntdStylish', () => {
   })
 
   it('should return stylish from ThemeProvider stylish prop', () => {
-    let result: ComputedRef<Record<string, string>>
+    let result!: ComputedRef<Record<string, string>>
     const Consumer = defineComponent({
       setup() {
         result = useAntdStylish()

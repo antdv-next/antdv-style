@@ -11,7 +11,7 @@ const ThemeProvider = createThemeProvider(emotion)
 
 describe('useThemeMode', () => {
   it('should return theme mode state', () => {
-    let modeResult: ThemeModeContext
+    let modeResult!: ThemeModeContext
     const Consumer = defineComponent({
       setup() {
         modeResult = useThemeMode()

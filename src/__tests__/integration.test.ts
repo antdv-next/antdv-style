@@ -16,7 +16,7 @@ describe('integration: full flow', () => {
       },
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const Page = defineComponent({
       setup() {
         result = useStyles()
@@ -46,7 +46,7 @@ describe('integration: full flow', () => {
       box: css({ background: isDarkMode ? '#000' : '#fff' }),
     }))
 
-    let result: CreateStylesReturn
+    let result!: CreateStylesReturn
     const Consumer = defineComponent({
       setup() {
         result = useStyles()
@@ -67,7 +67,7 @@ describe('integration: full flow', () => {
   })
 
   it('should work with useTheme inside ThemeProvider', () => {
-    let themeValue: ComputedRef<Theme>
+    let themeValue!: ComputedRef<Theme>
     const Consumer = defineComponent({
       setup() {
         themeValue = useTheme()
@@ -80,11 +80,11 @@ describe('integration: full flow', () => {
       slots: { default: () => h(Consumer) },
     })
 
-    expect(themeValue.value.myColor).toBe('red')
+    expect((themeValue.value as any).myColor).toBe('red')
   })
 
   it('should work with useThemeMode inside ThemeProvider', () => {
-    let modeValue: ThemeModeContext
+    let modeValue!: ThemeModeContext
     const Consumer = defineComponent({
       setup() {
         modeValue = useThemeMode()
@@ -106,8 +106,8 @@ describe('integration: full flow', () => {
     const instance1 = createInstance({ key: 'inst-a' })
     const instance2 = createInstance({ key: 'inst-b' })
 
-    let theme1: ComputedRef<Theme>
-    let theme2: ComputedRef<Theme>
+    let theme1!: ComputedRef<Theme>
+    let theme2!: ComputedRef<Theme>
 
     const Consumer1 = defineComponent({
       setup() {
@@ -139,8 +139,8 @@ describe('integration: full flow', () => {
 
     mount(App)
 
-    expect(theme1.value.color).toBe('red')
-    expect(theme2.value.color).toBe('blue')
+    expect((theme1.value as any).color).toBe('red')
+    expect((theme2.value as any).color).toBe('blue')
   })
 
   it('should support multiple isolated instances', () => {
@@ -154,8 +154,8 @@ describe('integration: full flow', () => {
       box: css({ color: 'blue' }),
     }))
 
-    let result1: CreateStylesReturn
-    let result2: CreateStylesReturn
+    let result1!: CreateStylesReturn
+    let result2!: CreateStylesReturn
 
     const Consumer1 = defineComponent({
       setup() {
