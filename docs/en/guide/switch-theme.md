@@ -1,5 +1,11 @@
 # Dark Mode
 
+<ThemeVariantsDemo variant="controlled" />
+
+<RuntimeCapabilitiesDemo variant="nested" />
+
+<ThemeSwitchDemo />
+
 ## Theme Modes
 
 `ThemeProvider` supports three modes via `themeMode`:

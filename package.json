@@ -1,5 +1,6 @@
 {
   "name": "antdv-style",
+  "packageManager": "pnpm@10.29.3",
   "version": "1.0.0-rc.1",
   "description": "CSS-in-JS solution for antdv-next",
   "keywords": [
@@ -23,10 +24,8 @@
     "type": "git",
     "url": "https://github.com/antdv-next/antdv-style.git"
   },
-  "files": [
-    "dist"
-  ],
   "type": "module",
+  "files": ["dist"],
   "sideEffects": false,
   "exports": {
     ".": {
@@ -37,22 +36,38 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "pnpm run build:core && pnpm -r run build",
+    "build:core": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "vue-tsc --noEmit",
-    "prepublishOnly": "pnpm run build",
-    "release": "pnpm run build && npm publish",
+    "test:packages": "node scripts/verify-packages.mjs",
+    "typecheck": "vue-tsc --noEmit && pnpm -r run typecheck",
+    "prepack": "pnpm run build:core",
+    "prepublishOnly": "pnpm run build:core",
+    "release": "pnpm run build:core && npm publish",
+    "pack:packages": "pnpm pack --pack-destination artifacts && pnpm -r exec pnpm pack --pack-destination ../../artifacts",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
+    "docs:typecheck": "vue-tsc -p tsconfig.docs.json --noEmit",
     "docs:preview": "vitepress preview docs",
     "lint": "oxlint --fix"
   },
   "dependencies": {
-    "@emotion/css": "^11.13.5"
+    "@antdv-next/cssinjs": "^1.0.6",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/css": "^11.13.5",
+    "@emotion/serialize": "^1.3.3",
+    "@emotion/sheet": "^1.4.0",
+    "@emotion/utils": "^1.4.2",
+    "@emotion/unitless": "^0.10.0",
+    "postcss": "^8.5.8",
+    "postcss-value-parser": "^4.2.0"
   },
   "devDependencies": {
+    "@antdv-next/less2cssinjs": "workspace:*",
     "@types/node": "^25.5.0",
+    "@vue/compiler-dom": "^3.5.31",
+    "@vue/compiler-sfc": "^3.5.31",
     "@vue/test-utils": "^2.4.6",
     "antdv-next": "^1.1.7",
     "happy-dom": "^15.11.7",
@@ -63,10 +78,12 @@
     "typescript": "^5.9.3",
     "unplugin-dts": "1.0.0-beta.6",
     "vite": "^8.0.3",
+    "vite-plugin-antdv-style": "workspace:*",
     "vitepress": "^2.0.0-alpha.17",
     "vitest": "^4.1.1",
     "vue": "^3.5.31",
-    "vue-tsc": "^3.2.6"
+    "vue-tsc": "^3.2.6",
+    "yaml": "^1.10.2"
   },
   "peerDependencies": {
     "antdv-next": ">=1.0.4",

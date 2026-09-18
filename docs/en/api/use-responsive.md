@@ -2,6 +2,10 @@
 
 Reactive breakpoint state based on `window.matchMedia`.
 
+<ResponsiveDemo />
+
+<ThemeVariantsDemo variant="responsive" />
+
 ## Signature
 
 ```typescript
@@ -50,6 +54,7 @@ const responsive = useResponsive()
 
 ## Notes
 
-- State is a **singleton** — all components share one set of `matchMedia` listeners. Listeners are created on first mount and torn down when the last subscriber unmounts.
+- Reads `screenXSMax` and `screenSM` through `screenXXL` from the closest antdv-next `ConfigProvider`, including the one inside `ThemeProvider`, and responds to token updates. The values above are defaults.
+- Consumers with identical breakpoint configurations share listeners; different configurations remain isolated. Listeners are removed when the final subscriber unmounts.
 - Does **not** require `<ThemeProvider>`.
 - SSR-safe: breakpoint values default to `false` when `window.matchMedia` is unavailable.

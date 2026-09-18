@@ -4,6 +4,7 @@ import { defineComponent, h } from 'vue'
 import { createThemeProvider } from '../createThemeProvider'
 import { makeCreateStyles } from '../createStyles'
 import { createEmotion } from '../../core'
+import type { FullStylish } from '../../types'
 
 const emotion = createEmotion()
 const ThemeProvider = createThemeProvider(emotion)
@@ -11,7 +12,7 @@ const createStyles = makeCreateStyles(emotion)
 
 describe('createStyles stylish injection', () => {
   it('should provide stylish in the factory utils', () => {
-    let receivedStylish!: Record<string, string>
+    let receivedStylish!: FullStylish
 
     const useStyles = createStyles(({ stylish }) => {
       receivedStylish = stylish
@@ -30,11 +31,11 @@ describe('createStyles stylish injection', () => {
       slots: { default: () => h(Consumer) },
     })
 
-    expect(receivedStylish).toEqual({})
+    expect(receivedStylish.buttonDefaultHover).toEqual(expect.any(String))
   })
 
   it('should pass stylish prop from ThemeProvider', () => {
-    let receivedStylish!: Record<string, string>
+    let receivedStylish!: FullStylish
 
     const useStyles = createStyles(({ stylish }) => {
       receivedStylish = stylish
@@ -56,6 +57,7 @@ describe('createStyles stylish injection', () => {
       slots: { default: () => h(Consumer) },
     })
 
-    expect(receivedStylish).toEqual({ defaultCard: 'card-class-name' })
+    expect((receivedStylish as FullStylish & { defaultCard: string }).defaultCard).toBe('card-class-name')
+    expect(receivedStylish.buttonDefaultHover).toEqual(expect.any(String))
   })
 })

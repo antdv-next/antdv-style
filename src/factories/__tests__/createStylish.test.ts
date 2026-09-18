@@ -61,6 +61,44 @@ describe('createStylish', () => {
     expect(typeof result.value.brandText).toBe('string')
   })
 
+  it('should support a plain style map', () => {
+    const useStylish = createStylish({
+      panel: { color: 'red' },
+    })
+
+    let result!: ComputedRef<{ panel: string }>
+    const Consumer = defineComponent({
+      setup() {
+        result = useStylish()
+        return () => h('div')
+      },
+    })
+
+    mount(ThemeProvider, {
+      slots: { default: () => h(Consumer) },
+    })
+
+    expect(typeof result.value.panel).toBe('string')
+  })
+
+  it('should support a single class returned from css()', () => {
+    const useStylish = createStylish(({ css }) => css({ color: 'red' }))
+
+    let result!: ComputedRef<string>
+    const Consumer = defineComponent({
+      setup() {
+        result = useStylish()
+        return () => h('div')
+      },
+    })
+
+    mount(ThemeProvider, {
+      slots: { default: () => h(Consumer) },
+    })
+
+    expect(result.value).toContain('acss-')
+  })
+
   it('should reactively update when theme changes', async () => {
     const useStylish = createStylish(({ css, isDarkMode }) => ({
       bg: css({ background: isDarkMode ? '#000' : '#fff' }),

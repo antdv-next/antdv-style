@@ -5,9 +5,14 @@
 ## 签名
 
 ```typescript
-function useAntdStylish(): ComputedRef<Record<string, string>>
+function useAntdStylish(): ComputedRef<FullStylish>
 ```
 
 ## 说明
 
-返回通过 `ThemeProvider` 的 `stylish` prop 定义的样式预设。如果没有定义则返回 `{}`。
+返回当前主题的完整 Stylish 集合。它始终包含内置的 `buttonDefaultHover`，并合并父级 ThemeProvider 与当前 ThemeProvider 的自定义预设。
+
+```ts
+const stylish = useAntdStylish()
+stylish.value.buttonDefaultHover
+```

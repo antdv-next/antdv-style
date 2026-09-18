@@ -1,10 +1,48 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
+import { theme } from 'antdv-next'
 import { useResponsive, _resetResponsiveForTesting, type ResponsiveState } from '../useResponsive'
 import { breakpoints as bp } from '../../utils/responsive'
 
 describe('useResponsive', () => {
+  it('isolates token breakpoints and resubscribes when the tokens change', async () => {
+    const tokens = ref<Record<string, unknown>>({ screenMD: 900 })
+    vi.spyOn(theme, 'useToken')
+      .mockReturnValueOnce({ theme: ref({}), token: tokens, hashId: ref('') } as any)
+      .mockReturnValueOnce({ theme: ref({}), token: ref({ screenMD: 1100 }), hashId: ref('') } as any)
+    const removers: ReturnType<typeof vi.fn>[] = []
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => {
+      const remove = vi.fn()
+      removers.push(remove)
+      return {
+        matches: query === '(min-width: 900px)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: remove,
+      } as unknown as MediaQueryList
+    })
+    const states: ResponsiveState[] = []
+    const Consumer = defineComponent({
+      setup() {
+        states.push(useResponsive())
+        return () => h('div')
+      },
+    })
+    const first = mount(Consumer)
+    const second = mount(Consumer)
+    expect(states[0].md).toBe(true)
+    expect(states[0].tablet).toBe(true)
+    expect(states[1].md).toBe(false)
+    tokens.value = { screenMD: 1100 }
+    await nextTick()
+    expect(states[0].md).toBe(false)
+    expect(states[0].tablet).toBe(false)
+    first.unmount()
+    second.unmount()
+    expect(removers.every(remove => remove.mock.calls.length === 1)).toBe(true)
+  })
+
   // Map media queries to breakpoint keys matching the new min-width semantics
   const queryToKey: Record<string, string> = {
     [`(max-width: ${bp.xsMax}px)`]: 'xs',

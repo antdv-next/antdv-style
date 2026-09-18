@@ -1,25 +1,30 @@
 # Introduction
 
-antdv-style is a CSS-in-JS solution for [antdv-next](https://github.com/antdv-next/antdv-next), built on [Emotion](https://emotion.sh/). It provides a seamless way to consume antdv-next's token system in your component styles.
+`antdv-style` is an application-level CSS-in-JS solution for Vue 3 and [antdv-next](https://github.com/antdv-next/antdv-next). It combines Emotion, antdv-next design tokens, dynamic themes, responsive utilities, and Vue dependency injection behind one API.
 
-## Why antdv-style?
+## Motivation
 
-antdv-next provides a powerful token-based design system with 500+ design variables. antdv-style makes it easy to consume these tokens in your component styles:
+antdv-next already provides the token system and the low-level CSS-in-JS engine used by its components. Applications still need conventions for consuming tokens in ordinary Vue components, organizing scoped styles, switching themes, and migrating existing Less code.
 
-- Write styles with full token access and IDE IntelliSense
-- Switch between light/dark mode with one prop
-- Create reusable style presets with `createStylish`
-- Build responsive layouts with token-driven breakpoints
-- Isolate styles in micro-frontend scenarios
+antdv-style fills that application layer. It complements rather than replaces `@antdv-next/cssinjs`.
+
+## Features
+
+- Token-aware `createStyles`, `useTheme`, and `useAntdToken` APIs.
+- Light, dark, automatic, and custom appearances.
+- Reusable Stylish presets.
+- CSS media helpers and runtime breakpoint state.
+- A static style path for CSS-variable-driven components.
+- Isolated instances for libraries, micro-frontends, and Shadow DOM.
+- SSR extraction that returns both CSS text and complete style tags.
 
 ## Vue Adaptation
-
-antdv-style's API design is adapted for Vue 3:
 
 | React pattern | Vue adaptation |
 |---|---|
 | `useMemo` / `useContext` | `computed` / `provide` + `inject` |
 | Hook returns plain object | Composable returns reactive proxy |
-| `<Global>` component | `injectGlobal` + managed `<style>` tag |
-| `SerializedStyles` | Class name strings |
+| `<Global>` component | `createGlobalStyle` + managed `<style>` tag |
+| `SerializedStyles` | Class name string |
 
+Continue with the [Quick Start](/en/guide/quick-start) or learn how to [write styles](/en/guide/create-styles).

@@ -1,6 +1,13 @@
 export { createEmotion } from './createEmotion'
 export type { CreateEmotionOptions, EmotionInstance } from './createEmotion'
-export { createCacheManager } from './CacheManager'
+export { createCSS } from './createCSS'
+export type { CreateCSSOptions } from './createCSS'
+export {
+  createCacheManager,
+  registerEmotionInstance,
+  unregisterEmotionInstance,
+  getRegisteredEmotionInstances,
+} from './CacheManager'
 export type { CacheManagerInstance } from './CacheManager'
 export {
   DEFAULT_CSS_PREFIX_KEY,

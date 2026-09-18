@@ -29,7 +29,8 @@ describe('useAntdTheme', () => {
 
     // Token fields are spread at top level (upstream alignment)
     expect(themeResult.value.colorPrimary).toBe('#1890ff')
-    expect(themeResult.value.stylish).toEqual({})
+    expect(themeResult.value.stylish.buttonDefaultHover).toEqual(expect.any(String))
+    expect(themeResult.value.cssVar.colorPrimary).toBe('var(--ant-color-primary)')
     // No nested token, no appearance/isDarkMode (those come from useThemeMode)
     expect((themeResult.value as any).token).toBeUndefined()
   })

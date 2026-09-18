@@ -1,16 +1,18 @@
 # createGlobalStyle
 
+<RuntimeCapabilitiesDemo variant="global" />
+
 注入响应式全局 CSS，当主题变化时自动更新。
 
 ## 签名
 
 ```typescript
 function createGlobalStyle(
-  factory: (utils: CreateStylesUtils) => Record<string, unknown> | string
+  factory: (utils: CreateStylesUtils) => Record<string, unknown> | string | void
 ): () => void
 ```
 
-`createGlobalStyle` 返回一个 composable（`useGlobalStyle`）。在组件的 `setup` 中调用该 composable 以激活样式。样式会注入到 `<head>` 中，并在组件卸载时移除。
+`createGlobalStyle` 返回一个 composable（`useGlobalStyle`）。在组件的 `setup` 中调用该 composable 以激活样式。样式会注入当前 Emotion 引擎的容器（默认 `<head>`），并遵循其 nonce、insertion point 与 Stylis 配置；组件卸载时会移除对应样式。
 
 ## 工厂函数参数
 
@@ -22,9 +24,10 @@ function createGlobalStyle(
 | `css` | `(styles: object) => string` | Emotion css 辅助函数 |
 | `cx` | `(...args) => string` | 合并 class name |
 | `prefixCls` | `string` | 组件 class 前缀 |
+| `iconPrefixCls` | `string` | 图标 class 前缀 |
 | `isDarkMode` | `boolean` | 是否处于暗色模式 |
-| `appearance` | `Appearance` | 当前外观（`'light'` \| `'dark'`） |
-| `responsive` | `ResponsiveHelpers` | 响应式媒体查询辅助工具 |
+| `appearance` | `Appearance` | 当前外观（内置 `'light'` / `'dark'`，也支持自定义值） |
+| `responsive` | `ResponsiveUtil` | 基于当前主题断点的响应式媒体查询辅助工具 |
 | `stylish` | `object` | 共享的 Stylish 预设 |
 | `cssVar` | `Record<string, string>` | CSS 变量映射 |
 

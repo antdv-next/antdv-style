@@ -19,6 +19,9 @@ import {
   StyleProvider,
   px2remTransformer,
   responsiveHelpers,
+  styleManager,
+  staticStylesCache,
+  createStaticStylesFactory,
 } from '../index'
 
 describe('barrel export', () => {
@@ -48,5 +51,31 @@ describe('barrel export', () => {
     expect(StyleProvider).toBeDefined()
     expect(px2remTransformer).toBeDefined()
     expect(responsiveHelpers).toBeDefined()
+    expect(styleManager).toBeDefined()
+    expect(staticStylesCache).toBeDefined()
+    expect(createStaticStylesFactory).toBeDefined()
+    expect(styleManager.cache.key).toBe('acss')
+  })
+
+  it('should expose the cache used by the default static styles factory', () => {
+    expect(createStaticStylesFactory().cache).toBe(staticStylesCache)
+    expect(staticStylesCache).toBe(styleManager.cache)
+  })
+
+  it.each(['default', 'factory'] as const)('merges %s static styles with top-level cx in argument order', (kind) => {
+    const makeStyles = kind === 'default' ? createStaticStyles : createStaticStylesFactory().createStaticStyles
+    const blue = css({ color: 'blue' })
+    const red = makeStyles({ root: { color: 'red' } }).root
+    const element = document.createElement('div')
+    document.body.append(element)
+    try {
+      element.className = cx(red, blue)
+      expect(element.className.split(' ')).toHaveLength(1)
+      expect(getComputedStyle(element).color).toBe('blue')
+      element.className = cx(blue, red)
+      expect(getComputedStyle(element).color).toBe('red')
+    } finally {
+      element.remove()
+    }
   })
 })

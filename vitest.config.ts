@@ -1,16 +1,31 @@
-import { defineConfig } from "vitest/config"
-import { fileURLToPath, URL } from 'node:url'
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { defineConfig } from 'vitest/config'
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const mock = fileURLToPath(new URL('./src/__mocks__/antdv-next.ts', import.meta.url))
 
 export default defineConfig({
-    test:{
-         globals: true,
-    environment: 'happy-dom',
-    alias: {
-      // In test environment, use mock for antdv-next (peerDependency not installed locally)
-      'antdv-next': resolve(__dirname, 'src/__mocks__/antdv-next.ts'),
-    },
-    }
+  test: {
+    projects: [
+      'packages/*/vitest.config.ts',
+      {
+        test: {
+          name: 'antdv-style',
+          globals: true,
+          environment: 'happy-dom',
+          include: ['src/**/*.test.ts'],
+          alias: [
+            { find: 'antdv-next/dist/config-provider/context', replacement: mock },
+            { find: 'antdv-next', replacement: mock },
+          ],
+        },
+      },
+      {
+        test: {
+          name: 'workspace',
+          environment: 'node',
+          include: ['tests/**/*.test.ts'],
+        },
+      },
+    ],
+  },
 })

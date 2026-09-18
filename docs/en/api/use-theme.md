@@ -1,5 +1,7 @@
 # useTheme
 
+<RuntimeCapabilitiesDemo variant="theme" />
+
 Access the full resolved theme token inside a component.
 
 ## Signature

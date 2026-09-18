@@ -1,0 +1,43 @@
+{
+  "name": "vite-plugin-antdv-style",
+  "version": "1.0.0-rc.1",
+  "description": "Automatic createStyles labels for Vite and Vue",
+  "keywords": ["vite", "vite-plugin", "antdv-style", "vue", "css-in-js"],
+  "homepage": "https://github.com/antdv-next/antdv-style",
+  "bugs": { "url": "https://github.com/antdv-next/antdv-style/issues" },
+  "license": "MIT",
+  "author": "darkingtail(darkingtail@gmail.com)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antdv-next/antdv-style.git",
+    "directory": "packages/vite-plugin-antdv-style"
+  },
+  "files": ["dist"],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "babel-plugin-antd-style": "1.0.4",
+    "@babel/parser": "^7.29.2",
+    "@babel/traverse": "^7.29.0",
+    "@vue/compiler-sfc": "^3.5.31",
+    "magic-string": "^0.30.21"
+  },
+  "devDependencies": {
+    "@types/babel__traverse": "^7.28.0"
+  }
+}

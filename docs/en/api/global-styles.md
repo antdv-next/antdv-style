@@ -1,16 +1,18 @@
 # createGlobalStyle
 
+<RuntimeCapabilitiesDemo variant="global" />
+
 Inject reactive global CSS that updates automatically when the theme changes.
 
 ## Signature
 
 ```typescript
 function createGlobalStyle(
-  factory: (utils: CreateStylesUtils) => Record<string, unknown> | string
+  factory: (utils: CreateStylesUtils) => Record<string, unknown> | string | void
 ): () => void
 ```
 
-`createGlobalStyle` returns a composable (`useGlobalStyle`). Call that composable inside a component's `setup` to activate the styles. Styles are injected into `<head>` and removed when the component is unmounted.
+`createGlobalStyle` returns a composable (`useGlobalStyle`). Call that composable inside a component's `setup` to activate the styles. Styles are injected into the active Emotion engine container (`<head>` by default), honoring its nonce, insertion point, and Stylis configuration; they are removed when the component is unmounted.
 
 ## Factory Argument
 
@@ -22,9 +24,10 @@ The `factory` receives the same `utils` object as `createStyles`:
 | `css` | `(styles: object) => string` | Emotion css helper |
 | `cx` | `(...args) => string` | Merge class names |
 | `prefixCls` | `string` | Component class prefix |
+| `iconPrefixCls` | `string` | Icon class prefix |
 | `isDarkMode` | `boolean` | Whether dark mode is active |
-| `appearance` | `Appearance` | Current appearance (`'light'` \| `'dark'`) |
-| `responsive` | `ResponsiveHelpers` | Responsive media-query helpers |
+| `appearance` | `Appearance` | Current appearance (built-in `'light'` / `'dark'`, plus custom values) |
+| `responsive` | `ResponsiveUtil` | Theme-breakpoint-aware responsive media-query helpers |
 | `stylish` | `object` | Shared stylish presets |
 | `cssVar` | `Record<string, string>` | CSS variable map |
 

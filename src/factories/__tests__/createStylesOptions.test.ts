@@ -158,6 +158,35 @@ describe('createStyles options', () => {
       expect(typeof result.styles.box).toBe('string')
     })
 
+    it('should isolate per-createStyles priorities for identical styles', () => {
+      const emotion = createEmotion({ speedy: false })
+      const ThemeProvider = createThemeProvider(emotion)
+      const createStyles = makeCreateStyles(emotion, { hashPriority: 'high' })
+      const useHighStyles = createStyles(() => ({ box: { color: 'blue' } }))
+      const useLowStyles = createStyles(
+        () => ({ box: { color: 'blue' } }),
+        { hashPriority: 'low' },
+      )
+
+      let highResult!: CreateStylesReturn
+      let lowResult!: CreateStylesReturn
+      const Consumer = defineComponent({
+        setup() {
+          highResult = useHighStyles()
+          lowResult = useLowStyles()
+          return () => h('div')
+        },
+      })
+
+      mount(ThemeProvider, {
+        slots: { default: () => h(Consumer) },
+      })
+
+      expect(lowResult.styles.box).not.toBe(highResult.styles.box)
+      expect(emotion.sheet.tags.map(tag => tag.textContent).join(''))
+        .toContain(`:where(.${lowResult.styles.box})`)
+    })
+
     it('should default to high hashPriority', () => {
       const emotion = createEmotion()
       const ThemeProvider = createThemeProvider(emotion)

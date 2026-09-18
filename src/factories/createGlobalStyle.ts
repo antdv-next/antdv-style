@@ -1,6 +1,9 @@
 import { inject, watchEffect, onUnmounted } from 'vue'
 import type { CSSInterpolation } from '@emotion/css/create-instance'
+import { serializeStyles } from '@emotion/serialize'
+import { StyleSheet } from '@emotion/sheet'
 import type { EmotionInstance } from '../core'
+import { registerManagedSheet } from '../core/CacheManager'
 import type { CreateStylesUtils } from '../types'
 import { ThemeContextKey, ThemeModeKey, StyleEngineKey } from '../context'
 import type { ContextKeys } from '../context'
@@ -29,7 +32,30 @@ export function makeCreateGlobalStyle(defaultEmotion: EmotionInstance, keys?: Co
         throw new Error('createGlobalStyle: must be used within a <ThemeProvider>')
       }
 
-      let styleEl: HTMLStyleElement | null = null
+      let globalSheet: StyleSheet | undefined
+      let anchor: HTMLMetaElement | undefined
+      let unregisterSheet: (() => void) | undefined
+
+      const getGlobalSheet = () => {
+        if (globalSheet) return globalSheet
+
+        const { container, insertionPoint, prepend, before } = engine.sheet
+        // Keep a permanent position even when a reactive factory temporarily returns no styles.
+        anchor = (container.ownerDocument ?? document).createElement('meta')
+        anchor.setAttribute('data-antdv-global-anchor', '')
+        container.insertBefore(anchor, insertionPoint
+          ? insertionPoint.nextSibling
+          : prepend ? container.firstChild : before)
+        globalSheet = new StyleSheet({
+          key: `${engine.cache.key}-global`,
+          container,
+          nonce: engine.sheet.nonce,
+          speedy: engine.sheet.isSpeedy,
+        })
+        globalSheet.before = anchor
+        unregisterSheet = registerManagedSheet(engine.cache, globalSheet)
+        return globalSheet
+      }
 
       watchEffect(() => {
         const themeValue = themeCtx.theme.value
@@ -39,8 +65,8 @@ export function makeCreateGlobalStyle(defaultEmotion: EmotionInstance, keys?: Co
 
         const utils: CreateStylesUtils = {
           token: themeValue,
-          css: engine.css,
-          cx: engine.cx,
+          css: engine.css.bind(engine),
+          cx: engine.cx.bind(engine),
           prefixCls: themeValue.prefixCls,
           iconPrefixCls: themeValue.iconPrefixCls,
           isDarkMode: themeValue.isDarkMode,
@@ -50,83 +76,28 @@ export function makeCreateGlobalStyle(defaultEmotion: EmotionInstance, keys?: Co
           cssVar: effectiveCssVar,
         }
 
-        const rawStyles = factory(utils)
-
-        // Serialize: delegate leaf-level CSS object serialization to Emotion's css(),
-        // only handle selector wrapping ourselves.
-        const cssText = rawStyles
-          ? (typeof rawStyles === 'string' ? rawStyles : serializeGlobalStyles(rawStyles, engine))
-          : ''
-
-        if (!cssText) {
-          // Factory returned nothing — clear any previously injected styles
-          if (styleEl) styleEl.textContent = ''
-          return
-        }
+        const rawStyles = factory(utils) as CSSInterpolation | void
 
         if (isBrowser) {
-          // Browser: managed <style> tag — replaces content on each update (no accumulation)
-          if (!styleEl) {
-            styleEl = document.createElement('style')
-            styleEl.setAttribute('data-antdv-global', '')
-            document.head.appendChild(styleEl)
-          }
-          styleEl.textContent = cssText
+          const sheet = getGlobalSheet()
+          sheet.flush()
+          if (!rawStyles) return
+
+          const serialized = serializeStyles([rawStyles], engine.cache.registered)
+          engine.cache.insert('', serialized, sheet, false)
+          sheet.tags.forEach(tag => tag.setAttribute('data-antdv-global', ''))
         } else {
-          // SSR: inject through emotion for extraction via CacheManager (one-shot, no accumulation concern)
-          engine.injectGlobal(cssText)
+          if (rawStyles) engine.injectGlobal(rawStyles)
         }
       })
 
       onUnmounted(() => {
-        if (styleEl) {
-          styleEl.remove()
-          styleEl = null
-        }
+        globalSheet?.flush()
+        unregisterSheet?.()
+        globalSheet = undefined
+        anchor?.remove()
+        anchor = undefined
       })
     }
   }
-}
-
-/**
- * Serialize a selector-to-styles mapping into a CSS string.
- * Uses Emotion's css() for leaf-level style objects, so vendor prefixes,
- * numeric px units, and camelCase conversion are handled by Emotion.
- * We only handle selector wrapping and nesting.
- *
- * Trade-off: css() generates class names as a side-effect in Emotion's cache.
- * These are unused but deduplicated by content, so the overhead is bounded
- * by the number of distinct style objects (not the number of re-renders).
- */
-function serializeGlobalStyles(
-  styles: Record<string, unknown>,
-  engine: EmotionInstance,
-): string {
-  const parts: string[] = []
-
-  for (const [selector, value] of Object.entries(styles)) {
-    if (value == null) continue
-
-    if (typeof value === 'string') {
-      // Pre-serialized CSS string for this selector
-      parts.push(`${selector} { ${value} }`)
-    } else if (typeof value === 'object') {
-      // Use Emotion to serialize the style object — this handles camelCase,
-      // numeric px units, vendor prefixes, and all CSS edge cases.
-      const className = engine.css(value as CSSInterpolation)
-      // Extract the generated CSS from Emotion's cache
-      const cachedCSS = engine.cache.inserted[className.replace(engine.cache.key + '-', '')]
-      if (typeof cachedCSS === 'string') {
-        parts.push(`${selector}{${cachedCSS}}`)
-      } else {
-        // Fallback: look up from registered styles
-        const registered = engine.cache.registered[className]
-        if (registered) {
-          parts.push(`${selector}{${registered}}`)
-        }
-      }
-    }
-  }
-
-  return parts.join('\n')
 }
