@@ -65,10 +65,13 @@ describe('ThemeProvider CSS variable integration', () => {
     expected: string
   }> = [
     { name: 'provider prefixCls', props: { prefixCls: 'acme' }, expected: 'acme' },
+    { name: 'boolean cssVar with provider prefixCls', props: { prefixCls: 'acme', theme: { cssVar: true } }, expected: 'acme' },
     { name: 'explicit theme prefix', props: { prefixCls: 'acme', theme: { cssVar: { prefix: 'brand' } } }, expected: 'brand' },
     { name: 'ancestor ConfigProvider prefix', parentPrefix: 'host', expected: 'host' },
     { name: 'nested ThemeProvider prefix', props: { theme: { cssVar: { prefix: 'outer' } } }, nested: true, expected: 'outer' },
     { name: 'explicit instance default', options: { cssVarPrefix: 'instance' }, expected: 'instance' },
+    { name: 'boolean cssVar with instance default', options: { cssVarPrefix: 'instance' }, props: { theme: { cssVar: true } }, expected: 'instance' },
+    { name: 'explicit cssVar overriding instance default', options: { cssVarPrefix: 'instance' }, props: { theme: { cssVar: { prefix: 'brand' } } }, expected: 'brand' },
     { name: 'provider overriding instance prefixCls', options: { prefixCls: 'instance' }, props: { prefixCls: 'local' }, expected: 'local' },
   ]
 

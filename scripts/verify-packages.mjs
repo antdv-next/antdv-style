@@ -14,6 +14,7 @@ const temporary = mkdtempSync(join(tmpdir(), 'antdv-style-packed-'))
 const version = manifest.version
 const store = run(root, process.execPath, [pnpm, 'store', 'path', '--silent']).trim()
 const lock = YAML.parse(readFileSync(join(root, 'pnpm-lock.yaml'), 'utf8'))
+const antdvNextVersion = lock.importers['.'].devDependencies['antdv-next'].version.split('(')[0]
 const overrides = {}
 // Keep isolated fixtures on the repository's locked dependency graph.
 for (const [parent, snapshot] of Object.entries(lock.snapshots)) {
@@ -219,7 +220,7 @@ assert.equal(missing.status, 2)
 console.log('Packed codemod: upstream reuse, recursive directory dry-run/write and missing-file handling passed')
 
 const runtime = fixture('runtime', 'antdv-style', 'antdv-style', {
-  'antdv-next': '1.1.7',
+  'antdv-next': antdvNextVersion,
   vue: '3.5.31',
   vite: '8.0.3',
   '@types/node': '25.5.0',
@@ -232,6 +233,7 @@ const transformers: StyleProviderProps['transformers'] = [px2remTransformer({ me
 writeFileSync(join(runtime, 'entry.ts'), `import { createSSRApp, defineComponent, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createInstance, extractStaticStyle, px2remTransformer } from 'antdv-style'
+import { version as antdvNextVersion } from 'antdv-next'
 export async function verify() {
   const instance = createInstance({ key: 'packed' })
   const useStyles = instance.createStyles({ root: { color: 'plum' } })
@@ -244,6 +246,7 @@ export async function verify() {
       render: () => h(instance.ThemeProvider, null, { default: () => h(App) }),
     }))
     return {
+      antdvNextVersion,
       html,
       css: extractStaticStyle(instance.styleManager, { html }).css,
       converted: px2remTransformer()('background:url("/icon-16px.png");content:"16px";padding:16px'),
@@ -269,12 +272,13 @@ const server = await createServer({
 try {
   const { verify } = await server.ssrLoadModule('/entry.ts')
   const result = await verify()
+  assert.equal(result.antdvNextVersion, ${JSON.stringify(antdvNextVersion)})
   assert.match(result.html, /packed-/)
   assert.match(result.css, /color:plum/)
   assert.equal(result.converted, 'background:url("/icon-16px.png");content:"16px";padding:1rem')
   assert.deepEqual(result.visited, { padding: '2rem', lineHeight: 2, '@media (min-width: 40rem)': {} })
 } finally { await server.close() }
-console.log('Packed runtime: types, real SSR and no tooling dependencies passed')
+console.log('Packed runtime: antdv-next ${antdvNextVersion}, types, real SSR and no tooling dependencies passed')
 `)
 
 console.log(`Package archives PASS. Retained fixtures: ${temporary}`)

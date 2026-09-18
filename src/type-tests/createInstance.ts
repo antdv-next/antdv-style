@@ -1,4 +1,5 @@
 import { createInstance } from '../index'
+import { h } from 'vue'
 
 interface BrandToken {
   brandColor: string
@@ -11,6 +12,9 @@ const style = createInstance<BrandToken>({
     headerHeight: 56,
   },
 })
+
+h(style.ThemeProvider, { theme: { cssVar: true } })
+h(style.ThemeProvider, { theme: { cssVar: { prefix: 'brand' } } })
 
 style.createStyles(({ token }) => {
   const brandColor: string = token.brandColor

@@ -284,7 +284,10 @@ export function createThemeProvider(
           hashed: configured?.hashed ?? antdvConfig.value.theme?.hashed ?? true,
           cssVar: defaults?.cssVarPrefix === undefined
             ? configured?.cssVar
-            : { prefix: defaults.cssVarPrefix, ...configured?.cssVar },
+            : {
+                prefix: defaults.cssVarPrefix,
+                ...(typeof configured?.cssVar === 'object' ? configured.cssVar : {}),
+              },
           algorithm: configuredAlgorithms.length > 0
             ? [baseAlgorithm, ...configuredAlgorithms]
             : baseAlgorithm,
@@ -300,10 +303,13 @@ export function createThemeProvider(
             ...tokenResult.token.value,
             ...resolvedAntdvTheme.value.token,
           }))
-          const cssVar = computed(() => createCSSVarProxy({
-            prefix: effectiveConfig.value.theme?.cssVar?.prefix
-              ?? DEFAULT_CSS_VAR_PREFIX,
-          }))
+          const cssVar = computed(() => {
+            const config = effectiveConfig.value.theme?.cssVar
+            return createCSSVarProxy({
+              prefix: (typeof config === 'object' ? config.prefix : undefined)
+                ?? DEFAULT_CSS_VAR_PREFIX,
+            })
+          })
 
           const inheritedCustomToken = computed<Record<string, unknown>>(() => {
             const inherited: Record<string, unknown> = { ...defaults?.customToken }
