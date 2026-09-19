@@ -5,6 +5,7 @@ import { makeCreateGlobalStyle } from '../createGlobalStyle'
 import { createThemeProvider } from '../createThemeProvider'
 import { createEmotion } from '../../core'
 import { createCacheManager } from '../../core/CacheManager'
+import createExternalEmotion from '@emotion/css/create-instance'
 
 // Clean up any injected style elements after each test
 afterEach(() => {
@@ -12,6 +13,125 @@ afterEach(() => {
 })
 
 describe('createGlobalStyle', () => {
+  it.each(['append', 'prepend', 'insertionPoint'].flatMap(placement =>
+    [false, true].map(external => ({ placement, external })),
+  ))(
+    'orders empty owners after main rules ($placement, external=$external)', async ({ placement, external }) => {
+      const container = document.createElement('section')
+      const point = document.createElement('meta')
+      container.append(point)
+      document.head.append(container)
+      const emotion = (external ? createExternalEmotion : createEmotion)({
+        key: 'owner-order', container, speedy: true,
+        prepend: placement === 'prepend',
+        insertionPoint: placement === 'insertionPoint' ? point : undefined,
+      })
+      const active = ref(false)
+      const global = makeCreateGlobalStyle(emotion)
+      const useA = global(() => active.value ? { '.target': { color: 'red' } } : undefined)
+      const useB = global(() => ({ '.target': { color: 'blue' } }))
+      const Consumer = defineComponent({
+        setup() {
+          useA()
+          emotion.css({ color: 'green' })
+          useB()
+          emotion.css({ color: 'purple' })
+          return () => h('div')
+        },
+      })
+      const wrapper = mount(createThemeProvider(emotion), { slots: { default: () => h(Consumer) } })
+      const css = () => createCacheManager(emotion).getStyles().replace(/\s/g, '')
+      try {
+        active.value = true
+        await nextTick()
+        expect(css()).toContain('color:purple')
+        expect(css()).toContain('.target{color:red')
+        expect(css()).toContain('.target{color:blue')
+        expect(css().indexOf('color:purple')).toBeLessThan(css().indexOf('.target{color:red'))
+        expect(css().indexOf('.target{color:red')).toBeLessThan(css().indexOf('.target{color:blue'))
+        emotion.flush()
+        emotion.css({ color: 'orange' })
+        active.value = false
+        await nextTick()
+        active.value = true
+        await nextTick()
+        expect(css()).toContain('color:orange')
+        expect(css()).toContain('.target{color:red')
+        expect(css().indexOf('color:orange')).toBeLessThan(css().indexOf('.target{color:red'))
+      } finally {
+        wrapper.unmount()
+        emotion.flush()
+        expect([...container.childNodes]).toEqual([point])
+        container.remove()
+      }
+    },
+  )
+
+  it.each([false, true])('claims only matching hydrated global sheets (speedy=%s)', async (speedy) => {
+    const container = document.createElement('section')
+    document.head.append(container)
+    const normal = document.createElement('style')
+    normal.setAttribute('data-emotion', 'hydrated-global normal')
+    normal.textContent = '.hydrated-global-normal{color:plum;}'
+    container.append(normal)
+    const makeServerTag = (key: string, owner: string, css: string) => {
+      const tag = document.createElement('style')
+      tag.setAttribute('data-emotion', `${key}-global`)
+      tag.setAttribute('data-antdv-global', owner)
+      tag.setAttribute('data-antdv-global-ssr', '')
+      tag.textContent = css
+      container.append(tag)
+      return tag
+    }
+    const first = makeServerTag('hydrated-global', 'v-0', 'body{color:red;}')
+    const second = makeServerTag('hydrated-global', 'v-1', 'body{color:blue;}')
+    const other = makeServerTag('other-engine', 'v-0', 'body{color:green;}')
+    const emotion = createEmotion({ key: 'hydrated-global', container, speedy, nonce: 'owned-nonce' })
+    const color = ref<string | undefined>('red')
+    const showFirst = ref(true)
+    const global = makeCreateGlobalStyle(emotion)
+    const useFirst = global(() => color.value ? { body: { color: color.value } } : undefined)
+    const useSecond = global(() => ({ body: { color: 'blue' } }))
+    const First = defineComponent({ setup() { useFirst(); return () => h('div') } })
+    const Second = defineComponent({ setup() { useSecond(); return () => h('div') } })
+    const ThemeProvider = createThemeProvider(emotion)
+    const App = defineComponent({
+      setup: () => () => h(ThemeProvider, null, {
+        default: () => [showFirst.value ? h(First) : null, h(Second)],
+      }),
+    })
+    const wrapper = mount(App)
+    const manager = createCacheManager(emotion)
+    const css = () => manager.getStyles().replace(/\s/g, '')
+    try {
+      expect(first.isConnected).toBe(false)
+      expect(second.isConnected).toBe(false)
+      expect(other.isConnected).toBe(true)
+      expect(container.querySelectorAll('style[data-emotion="hydrated-global-global"]')).toHaveLength(2)
+      const firstGlobal = container.querySelector('style[data-emotion="hydrated-global-global"]')!
+      expect(normal.compareDocumentPosition(firstGlobal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(css().indexOf('color:red')).toBeLessThan(css().indexOf('color:blue'))
+      color.value = undefined
+      await nextTick()
+      expect(css()).not.toContain('color:red')
+      expect(css()).toContain('color:blue')
+      color.value = 'purple'
+      await nextTick()
+      expect(css().indexOf('color:purple')).toBeLessThan(css().indexOf('color:blue'))
+      showFirst.value = false
+      await nextTick()
+      expect(css()).not.toContain('color:purple')
+      expect(css()).toContain('color:blue')
+      expect(other.isConnected).toBe(true)
+      expect(container.querySelector('style[data-emotion="hydrated-global-global"]')?.getAttribute('nonce'))
+        .toBe('owned-nonce')
+    } finally {
+      wrapper.unmount()
+      emotion.flush()
+      container.remove()
+    }
+  })
+
   it.each([false, true])('collects and resets owned global sheets (speedy=%s)', async (speedy) => {
     const emotion = createEmotion({ key: 'owned-global', speedy, nonce: 'owned-nonce' })
     const other = createEmotion({ key: 'other-global', speedy: false })

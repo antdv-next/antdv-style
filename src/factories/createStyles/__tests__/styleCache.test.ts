@@ -1,8 +1,77 @@
 import { describe, it, expect } from 'vitest'
 
 import { createStyleCache, createStyleCacheKeyFactory } from '../styleCache'
+import { computed, reactive } from 'vue'
 
 describe('styleCache', () => {
+  it('bypasses Date own state and subclasses before evaluating accessors', () => {
+    const key = createStyleCacheKeyFactory()
+    let reads = 0
+    const color = Symbol('color')
+    class ColoredDate extends Date {}
+    for (const value of [
+      Object.defineProperty(new Date(0), 'color', { value: 'red' }),
+      Object.assign(new Date(0), { color: 'blue' }),
+      Object.defineProperty(new Date(0), color, { value: 'blue' }),
+      Object.defineProperty(new Date(0), 'getTime', { get() { reads++; throw Error('unused') } }),
+      new ColoredDate(0),
+    ]) {
+      expect(key(value)).toBeUndefined()
+      expect(key({ value })).toBeUndefined()
+    }
+    expect(reads).toBe(0)
+    const cache = createStyleCache()
+    let calls = 0
+    for (const date of [new Date(0), new Date(0)]) cache.getOrCompute(key(date), () => ++calls)
+    expect(calls).toBe(1)
+  })
+
+  it.each([false, true])('bypasses hidden/accessor array indices without reading them (nested=%s)', (nested) => {
+    const key = createStyleCacheKeyFactory()
+    let reads = 0
+    for (const enumerable of [false, true]) {
+      const values = Object.defineProperty([], '0', {
+        enumerable,
+        get() { reads++; throw Error('unused array getter') },
+      })
+      expect(key(nested ? { values } : values)).toBeUndefined()
+    }
+    expect(reads).toBe(0)
+    expect(key(Object.defineProperty([], '0', { value: 'red' }))).toBeUndefined()
+    class Colors extends Array {}
+    const custom = new Colors()
+    custom.push('red')
+    expect(key(custom)).toBeUndefined()
+  })
+
+  it('does not inspect indices after detecting extra array state', () => {
+    const key = createStyleCacheKeyFactory()
+    let reads = 0
+    const values = Object.defineProperty(['red'], '1', {
+      enumerable: true,
+      get() { reads++; throw Error('must bypass before indexing') },
+    })
+    Object.defineProperty(values, 'tone', { value: 'blue' })
+    expect(key(values)).toBeUndefined()
+    expect(reads).toBe(0)
+  })
+
+  it('keeps tracking normal reactive array indices and length', () => {
+    const key = createStyleCacheKeyFactory()
+    const values = reactive(['red'])
+    const result = computed(() => key(values))
+    const first = result.value
+    expect(first).toBe(key(['red']))
+    values[0] = 'blue'
+    expect(result.value).toBe(key(['blue']))
+    values.push('green')
+    expect(result.value).toBe(key(['blue', 'green']))
+    Reflect.deleteProperty(values, '0')
+    const sparse = new Array<string>(2)
+    sparse[1] = 'green'
+    expect(result.value).toBe(key(sparse))
+  })
+
   it('bypasses arrays with non-index own properties', () => {
     const key = createStyleCacheKeyFactory()
     for (const property of ['tone', '01', '-1', '1.5', '4294967295']) {
@@ -41,6 +110,33 @@ describe('styleCache', () => {
     nested.value[first] = 'green'
     expect(key(nested)).not.toBe(before)
     expect(key(Object.assign([], { [first]: 'red' }))).toBeUndefined()
+  })
+
+  it('bypasses objects with hidden own fields without reading hidden getters', () => {
+    const key = createStyleCacheKeyFactory()
+    let stringReads = 0
+    const hidden = Object.defineProperty({}, 'color', {
+      enumerable: false,
+      get() {
+        stringReads++
+        return 'red'
+      },
+    })
+    const hiddenSymbol = Symbol('hidden')
+    let symbolReads = 0
+    const withHiddenSymbol = Object.defineProperty({}, hiddenSymbol, {
+      enumerable: false,
+      get() {
+        symbolReads++
+        return 'red'
+      },
+    })
+
+    expect(key(hidden)).toBeUndefined()
+    expect(key(withHiddenSymbol)).toBeUndefined()
+    expect(stringReads).toBe(0)
+    expect(symbolReads).toBe(0)
+    expect(key({ color: 'red' })).not.toBe(key({ color: 'blue' }))
   })
 
   it('bypasses shared results when no safe key can be produced', () => {

@@ -137,6 +137,6 @@ describe('createStylish', () => {
       },
     })
 
-    expect(() => mount(Consumer)).toThrow()
+    expect(() => mount(Consumer)).toThrow('createStyles: useStyles() must be used within a <ThemeProvider>')
   })
 })

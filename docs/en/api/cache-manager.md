@@ -24,4 +24,8 @@ both without affecting another instance. Unmounting unregisters the hook's sheet
 Reset does not stop mounted global hooks: a later theme or reactive dependency
 change may insert their styles again.
 
+Both SSR and browser collection put the main Emotion sheet first, followed by
+global hooks in mount order. Ordinary rules are grouped into the main sheet;
+empty global owners retain an SSR marker so hydration can recover their position.
+
 In browser speedy mode, the manager reads CSS from CSSOM `cssRules`. If browser security rules prevent access, it safely returns an empty string. Server-generated tags preserve the CSP nonce configured on the Emotion cache.

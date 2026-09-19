@@ -31,6 +31,8 @@ interface SharedCacheRegistry {
   registeredCaches: WeakMap<EmotionInstance['cache'], RegistryEntry>
   cacheManagers: WeakMap<EmotionInstance['cache'], CacheManagerInstance>
   managedSheets?: WeakMap<EmotionInstance['cache'], Set<StyleSheet>>
+  orderedSheets?: WeakSet<StyleSheet>
+  serverGlobalOwners?: WeakMap<EmotionInstance['cache']['inserted'], Map<string, string>>
   registryFinalizer?: FinalizationRegistryLike<RegistryEntry>
 }
 
@@ -78,6 +80,17 @@ const {
   registryFinalizer,
 } = sharedRegistry
 const managedSheets = sharedRegistry.managedSheets ??= new WeakMap()
+const orderedSheets = sharedRegistry.orderedSheets ??= new WeakSet()
+const serverGlobalOwners = sharedRegistry.serverGlobalOwners ??= new WeakMap()
+
+export function setServerGlobalStyle(cache: EmotionInstance['cache'], owner: string, css: string) {
+  let owners = serverGlobalOwners.get(cache.inserted)
+  if (!owners) serverGlobalOwners.set(cache.inserted, owners = new Map())
+  // Store an ordered entry per hook, not per CSS hash; flush starts a new generation.
+  const id = `__antdv-global-${owner}`
+  owners.set(id, owner)
+  cache.inserted[id] = css
+}
 
 // Browser global hooks use separate sheets but still belong to their engine.
 export function registerManagedSheet(cache: EmotionInstance['cache'], sheet: StyleSheet) {
@@ -92,6 +105,52 @@ export function registerManagedSheet(cache: EmotionInstance['cache'], sheet: Sty
 
 export function flushManagedSheets(cache: EmotionInstance['cache']) {
   managedSheets.get(cache)?.forEach(sheet => sheet.flush())
+}
+
+export function getGlobalStyleElements(cache: EmotionInstance['cache']): Element[] {
+  return Array.from(cache.sheet.container?.childNodes ?? [])
+    .filter((node): node is Element => node.nodeType === 1)
+    .filter(element => element.getAttribute('data-antdv-global-anchor') === cache.key
+      || (element.getAttribute('data-emotion') === `${cache.key}-global`
+        && element.hasAttribute('data-antdv-global')))
+}
+
+export function prepareGlobalStyleOrder(cache: EmotionInstance['cache']) {
+  const { sheet } = cache
+  if (orderedSheets.has(sheet)) return
+  orderedSheets.add(sheet)
+  const firstGlobal = getGlobalStyleElements(cache)[0]
+  if (firstGlobal) {
+    for (const tag of sheet.tags) {
+      if (tag.compareDocumentPosition(firstGlobal) & 4) continue
+      // Supplied engines may already contain CSSOM rules when their globals hydrate.
+      const rules = tag.textContent
+        ? []
+        : Array.from(tag.sheet?.cssRules ?? [], rule => rule.cssText)
+      sheet.container.insertBefore(tag, firstGlobal)
+      for (const rule of rules) tag.sheet?.insertRule(rule, tag.sheet.cssRules.length)
+    }
+  }
+  const insert = sheet.insert.bind(sheet)
+  sheet.insert = (rule) => {
+    const firstGlobal = sheet.tags.length === 0 && getGlobalStyleElements(cache)[0]
+    if (!firstGlobal) {
+      insert(rule)
+      return
+    }
+    // Choose the slot before insertion: moving a speedy tag would discard its CSSOM rules.
+    const { before, insertionPoint, prepend } = sheet
+    sheet.before = firstGlobal
+    sheet.insertionPoint = undefined
+    sheet.prepend = false
+    try {
+      insert(rule)
+    } finally {
+      sheet.before = before
+      sheet.insertionPoint = insertionPoint
+      sheet.prepend = prepend
+    }
+  }
 }
 
 function createEmotionReference(emotion: EmotionInstance): WeakRefLike<EmotionInstance> {
@@ -138,6 +197,7 @@ export function getRegisteredEmotionInstances(): EmotionInstance[] {
 interface StyleData {
   css: string
   ids: string[]
+  owner?: string
 }
 
 function escapeAttribute(value: string): string {
@@ -166,7 +226,7 @@ export function createCacheManager(emotion: EmotionInstance): CacheManagerInstan
 
   const cache = emotion.cache
 
-  const collectStyles = (html?: string): StyleData => {
+  const collectStyles = (html?: string): StyleData[] => {
     const insertedIds = Object.keys(cache.inserted)
     const hasServerStyles = insertedIds.some(id => typeof cache.inserted[id] === 'string')
 
@@ -180,19 +240,26 @@ export function createCacheManager(emotion: EmotionInstance): CacheManagerInstan
         }
       }
 
-      const ids: string[] = []
-      let css = ''
+      const globals: StyleData[] = []
+      const owners = serverGlobalOwners.get(cache.inserted)
+      // The main Emotion sheet is contiguous in the browser, before owned globals.
+      const main: StyleData = { css: '', ids: [] }
       for (const id of insertedIds) {
         const value = cache.inserted[id]
         if (typeof value !== 'string') continue
 
+        const owner = owners?.get(id)
+        if (owner !== undefined) {
+          globals.push({ css: value, ids: [], owner })
+          continue
+        }
         const isGlobalStyle = cache.registered[`${cache.key}-${id}`] === undefined
         if (html === undefined || usedIds.has(id) || isGlobalStyle) {
-          ids.push(id)
-          css += value
+          main.ids.push(id)
+          main.css += value
         }
       }
-      return { css, ids }
+      return [main, ...globals]
     }
 
     const tags = [
@@ -204,25 +271,38 @@ export function createCacheManager(emotion: EmotionInstance): CacheManagerInstan
       if (position & 1) return 0
       return position & 4 ? -1 : position & 2 ? 1 : 0
     })
-    const css = tags.map(getTagStyles).join('')
-    return { css, ids: css ? insertedIds : [] }
+    const styles: StyleData[] = []
+    for (const tag of tags) {
+      const css = getTagStyles(tag)
+      if (!css) continue
+      const owner = tag.getAttribute('data-antdv-global') ?? undefined
+      const previous = styles[styles.length - 1]
+      if (previous && previous.owner === owner) previous.css += css
+      else styles.push({ css, ids: owner === undefined ? insertedIds : [], owner })
+    }
+    return styles
   }
 
   const manager: CacheManagerInstance = {
     getStyles(html?: string): string {
-      return collectStyles(html).css
+      return collectStyles(html).map(style => style.css).join('')
     },
 
     getStyleTags(html?: string): string {
-      const { css, ids } = collectStyles(html)
-      if (!css) return ''
-      const dataEmotion = [cache.key, ...ids].join(' ')
       const nonce = cache.sheet.nonce
         ? ` nonce="${escapeAttribute(cache.sheet.nonce)}"`
         : ''
-      // HTML raw-text parsing ignores CSS quotes/comments; CSS accepts an escaped slash.
-      const styleText = css.replace(/<\/style/gi, match => `<\\/${match.slice(2)}`)
-      return `<style data-emotion="${escapeAttribute(dataEmotion)}"${nonce}>${styleText}</style>`
+      return collectStyles(html).map(({ css, ids, owner }) => {
+        // Empty owned globals still need a marker so hydration can recover order.
+        if (!css && owner === undefined) return ''
+        const dataEmotion = owner === undefined ? [cache.key, ...ids].join(' ') : `${cache.key}-global`
+        const ownership = owner === undefined
+          ? ''
+          : ` data-antdv-global="${escapeAttribute(owner)}" data-antdv-global-ssr=""`
+        // HTML raw-text parsing ignores CSS quotes/comments; CSS accepts an escaped slash.
+        const styleText = css.replace(/<\/style/gi, match => `<\\/${match.slice(2)}`)
+        return `<style data-emotion="${escapeAttribute(dataEmotion)}"${ownership}${nonce}>${styleText}</style>`
+      }).join('')
     },
 
     reset(): void {

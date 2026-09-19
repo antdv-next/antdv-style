@@ -20,7 +20,7 @@ Configure the Emotion and antdv-next CSS-in-JS engines for a component subtree. 
 | `stylisPlugins` | `StylisPlugin[]` | — | Emotion serialization plugins |
 | `getStyleManager` | `(engine) => void` | — | Receive the effective Emotion instance |
 | `hashPriority` | `'high' \| 'low'` | inherited; `'low'` without parent configuration | antdv-next selector priority |
-| `ssrInline` | `boolean` | — | antdv-next SSR inline mode |
+| `ssrInline` | `boolean` | — | Compatibility passthrough; the current dependency does not emit inline styles automatically |
 | `transformers` | `Transformer[]` | — | antdv-next style transformers |
 | `linters` | `Linter[]` | — | antdv-next style linters |
 | `layer` | `boolean` | — | Enable antdv-next CSS layers |
@@ -62,6 +62,7 @@ onMounted(() => {
 
 - `StyleProvider` does not provide theme tokens. Prefer `<StyleProvider><ThemeProvider>...</ThemeProvider></StyleProvider>` so themed styles inherit the scoped engine.
 - When used for SSR, pass the same `EmotionInstance` that your server cache manager uses so extracted styles are consistent.
+- The current `@antdv-next/cssinjs@1.0.6` accepts `ssrInline`, but setting it to `true` does not automatically insert `<style>` tags. Explicitly call `extractStaticStyle` with the same request-local `antdCache` and insert its `tags` into the HTML. See [SSR integration](../guide/ssr).
 - The `StyleProvider` returned by `createInstance()` retains that instance's Emotion engine when only `antdCache` is configured.
 - The container, cache and other engine creation options are selected at mount time. Use `v-if` to wait for an asynchronous container; remount the provider to change engine options.
 - The current `@antdv-next/cssinjs` component-style deduplication can collide across containers sharing a prefix. Give ShadowRoot components a unique `prefixCls`, as above, and configure their popup container too. Emotion custom styles are not affected.

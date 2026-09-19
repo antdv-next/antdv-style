@@ -3,8 +3,8 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, inject, h, nextTick } from 'vue'
 import { ConfigProvider } from 'antdv-next'
 import { useConfig } from 'antdv-next/dist/config-provider/context'
-import { createThemeProvider } from '../createThemeProvider'
-import { createEmotion } from '../../core'
+import { createThemeProvider, type ThemeProviderProps } from '../createThemeProvider'
+import { createCacheManager, createEmotion } from '../../core'
 import { ThemeContextKey, ThemeModeKey, StyleEngineKey } from '../../context'
 import type { Theme } from '../../types'
 import type { ThemeModeContext } from '../../context'
@@ -30,6 +30,39 @@ const Consumer = defineComponent({
 })
 
 describe('ThemeProvider', () => {
+  it.each(['customStylish', 'stylish'] as const)('provides a callable css helper to %s factories across theme updates', async (prop) => {
+    const engine = createEmotion({ key: 'stylish-helper', speedy: false })
+    const Provider = createThemeProvider(engine)
+    const manager = createCacheManager(engine)
+    const factory: NonNullable<ThemeProviderProps['customStylish']> = ({ css, token }) => ({
+      accent: css({ color: token.colorPrimary }),
+    })
+    const Child = defineComponent({
+      setup() {
+        const context = inject(ThemeContextKey)!
+        return () => h('div', {
+          class: (context.theme.value.stylish as Theme['stylish'] & { accent: string }).accent,
+        })
+      },
+    })
+    const wrapper = mount(Provider, {
+      props: { [prop]: factory, theme: { token: { colorPrimary: 'red' } } },
+      slots: { default: () => h(Child) },
+    })
+    try {
+      const initial = wrapper.find('div').attributes('class')
+      expect(initial).toMatch(/^stylish-helper-/)
+      expect(manager.getStyles()).toContain(`.${initial}{color:red;}`)
+      await wrapper.setProps({ theme: { token: { colorPrimary: 'blue' } } })
+      const updated = wrapper.find('div').attributes('class')
+      expect(updated).not.toBe(initial)
+      expect(manager.getStyles()).toContain(`.${updated}{color:blue;}`)
+    } finally {
+      wrapper.unmount()
+      engine.flush()
+    }
+  })
+
   const HashConsumer = defineComponent({
     setup() {
       const config = useConfig()

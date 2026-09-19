@@ -365,7 +365,7 @@ export function createThemeProvider(
                   stylish: antdStylish.value,
                   appearance: computedAppearance.value,
                   isDarkMode: isDarkMode.value,
-                  css: emotion.css,
+                  css: emotion.css.bind(emotion),
                 })
               : typeof props.stylish === 'object' ? props.stylish : {}
             return {

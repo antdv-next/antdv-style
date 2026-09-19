@@ -23,4 +23,4 @@ import { toRefs } from 'vue'
 const { styles } = toRefs(useStyles(() => ({ compact: props.compact })))
 ```
 
-Avoid recreating style factories during render and avoid large non-serializable style props. The current dynamic style cache derives its key from JSON-serializable theme and prop values.
+Avoid recreating style factories during render. Cache keys use custom serialization of theme and props, supporting circular references, BigInt, and functions. Non-plain objects that cannot be safely keyed bypass shared result caching. Large inputs still increase key-generation work, so pass only fields used by the styles. Keep factories pure functions of theme and props, and pass reactive state explicitly through a getter. See [reactive inputs and caching](/en/api/create-styles#reactive-inputs-and-caching).

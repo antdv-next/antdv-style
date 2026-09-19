@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { compileFunction } from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import * as Vue from 'vue'
@@ -26,8 +27,8 @@ describe('dynamic documentation examples', () => {
       if (id === 'antdv-style') return { createStyles }
       throw new Error(`Unexpected example import: ${id}`)
     }
-    // Execute only the local, compiled documentation example.
-    new Function('require', 'exports', output.outputText)(require, exports)
+    // Execute trusted local examples only; this is not a security sandbox.
+    compileFunction(output.outputText, ['require', 'exports'], { filename: path })(require, exports)
     const Example = exports.default!
     const exampleProps = Vue.ref<Record<string, unknown>>({})
     const wrapper = mount(ThemeProvider, {

@@ -10,6 +10,124 @@ import { createCache } from '@antdv-next/cssinjs'
 import { createCacheManager } from '../../core'
 
 describe('extractStaticStyle SSR', () => {
+  it('extracts one main sheet before global owners regardless of registration interleaving', async () => {
+    const instance = createInstance({ key: 'ssr-main-order' })
+    const useA = instance.createGlobalStyle(() => ({ '.target': { color: 'red' } }))
+    const useB = instance.createGlobalStyle(() => ({ '.target': { color: 'blue' } }))
+    const Consumer = defineComponent({
+      setup() {
+        useA()
+        const first = instance.css({ color: 'green' })
+        useB()
+        const second = instance.css({ color: 'purple' })
+        return () => h('div', { class: [first, second] })
+      },
+    })
+    try {
+      const html = await renderToString(createSSRApp({
+        render: () => h(instance.ThemeProvider, null, { default: () => h(Consumer) }),
+      }))
+      const result = extractStaticStyle(instance.styleManager, { html, includeAntdv: false })
+      expect(result.css.indexOf('color:purple')).toBeLessThan(result.css.indexOf('.target{color:red'))
+      expect(result.css.indexOf('.target{color:red')).toBeLessThan(result.css.indexOf('.target{color:blue'))
+      expect(result.tags.match(/data-emotion="ssr-main-order /g)).toHaveLength(1)
+    } finally {
+      instance.dispose()
+    }
+  })
+
+  it('keeps an empty global owner marker for hydration order', async () => {
+    const instance = createInstance({ key: 'empty-owner' })
+    const useFirst = instance.createGlobalStyle(() => undefined)
+    const useSecond = instance.createGlobalStyle(() => ({ '.target': { color: 'blue' } }))
+    const First = defineComponent({ setup() { useFirst(); return () => h('span', 'first') } })
+    const Second = defineComponent({ setup() { useSecond(); return () => h('span', 'second') } })
+
+    try {
+      const html = await renderToString(createSSRApp({
+        render: () => h(instance.ThemeProvider, null, {
+          default: () => [h(First), h(Second)],
+        }),
+      }))
+      const result = extractStaticStyle(instance.styleManager, { html, includeAntdv: false })
+      const globals = [...result.tags.matchAll(
+        /<style[^>]*data-antdv-global="([^"]+)"[^>]*>(.*?)<\/style>/g,
+      )]
+
+      expect(globals).toHaveLength(2)
+      expect(globals[0][2]).toBe('')
+      expect(globals[1][2]).toContain('.target{color:blue;}')
+    } finally {
+      instance.dispose()
+    }
+  })
+
+  it.each(['reset', 'flush'] as const)('extracts owned globals separately and clears them on %s', async (operation) => {
+    const instance = createInstance({ key: 'owned-ssr', nonce: 'test-nonce' })
+    const useGlobal = instance.createGlobalStyle(() => ({ body: { color: 'red' } }))
+    const useStyles = instance.createStyles({ root: { padding: 13 } })
+    const Consumer = defineComponent({
+      setup() {
+        useGlobal()
+        const state = useStyles()
+        return () => h('div', { class: state.styles.root })
+      },
+    })
+    const render = () => renderToString(createSSRApp({
+      render: () => h(instance.ThemeProvider, null, { default: () => [h(Consumer), h(Consumer)] }),
+    }))
+    try {
+      instance.injectGlobal({ html: { margin: 0 } })
+      const html = await render()
+      const result = extractStaticStyle(instance.styleManager, { html, includeAntdv: false })
+      const globals = [...result.tags.matchAll(/<style[^>]*data-antdv-global="([^"]+)"[^>]*>(.*?)<\/style>/g)]
+      expect(globals).toHaveLength(2)
+      expect(new Set(globals.map(match => match[1])).size).toBe(2)
+      for (const [tag, , css] of globals) {
+        expect(tag).toContain('data-emotion="owned-ssr-global"')
+        expect(tag).toContain('nonce="test-nonce"')
+        expect(css).toBe('body{color:red;}')
+      }
+      const main = result.tags.replace(/<style[^>]*data-antdv-global[^>]*>.*?<\/style>/g, '')
+      expect(main).toContain('padding:13px')
+      expect(main).toContain('html{margin:0;}')
+      expect(main).not.toContain('body{color:red;}')
+      expect(result.css.match(/body\{color:red;\}/g)).toHaveLength(2)
+      if (operation === 'reset') createCacheManager(instance.styleManager).reset()
+      else instance.styleManager.flush()
+      expect(extractStaticStyle(instance.styleManager, { includeAntdv: false })).toEqual({ css: '', tags: '' })
+      await render()
+      expect(extractStaticStyle(instance.styleManager, { includeAntdv: false }).tags)
+        .toMatch(/data-antdv-global=/)
+    } finally {
+      instance.dispose()
+    }
+  })
+
+  it('retains linked keyframes and escapes owned global style content and identity', async () => {
+    const instance = createInstance({ key: 'owned-content' })
+    const useGlobal = instance.createGlobalStyle(() => ({
+      body: { animation: { name: 'owned-animation', styles: '@keyframes owned-animation{to{opacity:1}}', anim: 1 } },
+      'body::before': { content: '"</style><script>marker=true</script>"' },
+    }))
+    const Consumer = defineComponent({ setup() { useGlobal(); return () => h('div') } })
+    const app = createSSRApp({
+      render: () => h(instance.ThemeProvider, null, { default: () => h(Consumer) }),
+    })
+    app.config.idPrefix = 'test"<&'
+    try {
+      await renderToString(app)
+      const result = extractStaticStyle(instance.styleManager, { html: '', includeAntdv: false })
+      expect(result.css).toContain('@keyframes owned-animation')
+      expect(result.css).toContain('</style><script>')
+      expect(result.tags).toContain('data-antdv-global="test&quot;&lt;&amp;-')
+      expect(result.tags).toContain('<\\/style><script>')
+      expect(result.tags.match(/<\/style>/g)).toHaveLength(1)
+    } finally {
+      instance.dispose()
+    }
+  })
+
   it.each(['\u5361\u7247', 'caf\u00e9', 'e\u0301', '\u{1F680}'])(
     'retains used Unicode labels and excludes unused rules: %s',
     async (label) => {

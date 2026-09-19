@@ -225,6 +225,17 @@ const runtime = fixture('runtime', 'antdv-style', 'antdv-style', {
   vite: '8.0.3',
   '@types/node': '25.5.0',
 })
+// Execute the documented configs against the installed archive, not a separate
+// hard-coded SSR config that can hide a broken setup guide.
+const docsSSRConfigs = ['guide/ssr.md', 'en/guide/ssr.md'].map((document, index) => {
+  const markdown = readFileSync(join(root, 'docs', document), 'utf8')
+  const snippets = [...markdown.matchAll(/```ts\r?\n([\s\S]*?)```/g)]
+    .map(match => match[1]).filter(source => source.includes('noExternal'))
+  assert.equal(snippets.length, 1, `${document} must contain one executable SSR config`)
+  const filename = `vite.docs-${index}.config.ts`
+  writeFileSync(join(runtime, filename), snippets[0])
+  return filename
+})
 checkTypes(runtime, `import { createStyles, createInstance, px2remTransformer, type StyleProviderProps } from 'antdv-style'
 const useStyles = createStyles(({ token }) => ({ root: { color: token.colorPrimary } }))
 const instance = createInstance()
@@ -265,20 +276,22 @@ for (const name of ['vite-plugin-antdv-style', '@antdv-next/less2cssinjs', 'post
   assert.equal(pkg.dependencies[name], undefined)
   await assert.rejects(import(name))
 }
-const server = await createServer({
-  configFile: false, server: { middlewareMode: true, hmr: false }, logLevel: 'error',
-  ssr: { noExternal: ['antdv-style', 'antdv-next', /^@v-c\\//, '@antdv-next/cssinjs'] },
-})
-try {
-  const { verify } = await server.ssrLoadModule('/entry.ts')
-  const result = await verify()
-  assert.equal(result.antdvNextVersion, ${JSON.stringify(antdvNextVersion)})
-  assert.match(result.html, /packed-/)
-  assert.match(result.css, /color:plum/)
-  assert.equal(result.converted, 'background:url("/icon-16px.png");content:"16px";padding:1rem')
-  assert.deepEqual(result.visited, { padding: '2rem', lineHeight: 2, '@media (min-width: 40rem)': {} })
-} finally { await server.close() }
-console.log('Packed runtime: antdv-next ${antdvNextVersion}, types, real SSR and no tooling dependencies passed')
+for (const configFile of ${JSON.stringify(docsSSRConfigs)}) {
+  const server = await createServer({
+    configFile, server: { middlewareMode: true, hmr: false }, logLevel: 'error',
+  })
+  try {
+    const { verify } = await server.ssrLoadModule('/entry.ts')
+    const result = await verify()
+    assert.equal(result.antdvNextVersion, ${JSON.stringify(antdvNextVersion)})
+    assert.match(result.html, /packed-/)
+    assert.match(result.css, /color:plum/)
+    assert.equal(result.converted, 'background:url("/icon-16px.png");content:"16px";padding:1rem')
+    assert.deepEqual(result.visited, { padding: '2rem', lineHeight: 2, '@media (min-width: 40rem)': {} })
+  } finally { await server.close() }
+  console.log('Packed runtime SSR passed with documented config: ' + configFile)
+}
+console.log('Packed runtime: antdv-next ${antdvNextVersion}, types, bilingual documented SSR and no tooling dependencies passed')
 `)
 
 console.log(`Package archives PASS. Retained fixtures: ${temporary}`)

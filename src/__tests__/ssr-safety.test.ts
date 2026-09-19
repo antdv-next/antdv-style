@@ -13,7 +13,7 @@ describe('SSR Safety', () => {
   it('should render ThemeProvider and createStyles without DOM errors', () => {
     const { ThemeProvider, createStyles } = createInstance()
 
-    const useStyles = createStyles(({ token, css }) => ({
+    const useStyles = createStyles(({ css }) => ({
       container: css`color: red;`,
     }))
 

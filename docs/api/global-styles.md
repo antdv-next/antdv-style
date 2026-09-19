@@ -55,6 +55,11 @@ useGlobalStyle()
 
 ## 注意事项
 
+- 同一引擎内，主 Emotion 样式表（`css` / `createStyles` / `injectGlobal`）在前，
+  `createGlobalStyle` 的独立样式表按 hook 挂载顺序排列在后。相同优先级的规则依此覆盖，
+  不按普通 class 与 global 工厂的交错调用顺序排列。`insertionPoint` 控制该引擎的位置，
+  不会倒置 hook 顺序；SSR 提取、水合与纯客户端渲染遵循相同规则。
+- 工厂初始或暂时返回 `undefined` 时仍保留顺序位置；更新不会移动该位置，卸载再挂载则取得新的位置。
 - 必须在 `<ThemeProvider>` 的后代组件中调用。
 - 该 composable 会在主题变化时响应式地重新注入样式。
 - 在 SSR 环境中，样式通过 Emotion 缓存注入，以支持服务端样式提取。

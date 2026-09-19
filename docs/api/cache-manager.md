@@ -24,6 +24,9 @@ const manager = createCacheManager(instance.styleManager)
 `reset()` / 引擎 `flush()` 会一起清空，但不会影响其他实例。组件卸载会注销其全局样式表。
 reset 不会停止仍挂载的全局样式 hook；之后主题或其响应式依赖变化时，该 hook 可以重新插入样式。
 
+SSR 与浏览器都按“主 Emotion 样式表在前、global hook 按挂载顺序在后”收集。
+普通规则合并到主样式表，空 global owner 的 SSR 标记仍保留，以便水合恢复顺序。
+
 ## 使用场景
 
 - SSR 渲染后提取指定实例；

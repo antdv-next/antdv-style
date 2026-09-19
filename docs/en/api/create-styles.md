@@ -70,12 +70,22 @@ Read theme data through factory utilities such as `token`.
 Factory results may be reused from cache. Do not perform side effects inside the
 factory or depend on its invocation count.
 
-Inputs containing non-plain objects whose state cannot be safely represented by
-a cache key, such as class instances, bypass the shared result cache rather than
-reusing styles by object identity. Pass these inputs explicitly through the props
-getter; Vue still tracks reactive fields read by the factory. Plain-object inputs
-continue to use caching. Non-reactive fields and arbitrary external closure state
-do not automatically trigger updates.
+Inputs containing non-plain objects whose state cannot be safely represented by a
+cache key, such as class instances, or objects with non-enumerable own fields
+(including non-enumerable getters), bypass the shared result cache rather than
+reusing a result from an incomplete key. Bypassing the shared cache does not mean
+the factory runs on every read; Vue's `computed` still caches its result. Pass
+these inputs explicitly through the props getter; Vue still tracks reactive fields
+read by the factory. Plain enumerable-object inputs continue to use caching.
+Non-reactive fields and arbitrary external closure state do not automatically
+trigger updates.
+
+Plain `Date` inputs are cached by time value. Dates with additional own properties
+or a custom subclass bypass shared caching. Plain arrays preserve length, holes,
+and element values. Additional string/symbol properties, non-enumerable indices,
+index accessors, or custom prototypes cause an early bypass without evaluating
+those index getters. The built-in array `length` is not an additional field;
+ordinary reactive array indices and length still trigger recomputation.
 
 ::: warning
 Do not directly destructure `styles`; that loses Vue reactivity. Use `s.styles.xxx` or call `toRefs(s)` first.

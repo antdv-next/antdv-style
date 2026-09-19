@@ -169,20 +169,25 @@ describe('useResponsive', () => {
   })
 
   it('should return safe defaults when matchMedia is unavailable', () => {
-    const originalMatchMedia = window.matchMedia
-    // @ts-ignore
-    delete window.matchMedia
-
+    let result!: ResponsiveState
     const Consumer = defineComponent({
       setup() {
-        const state = useResponsive()
-        expect(state.xs).toBe(false)
-        expect(state.sm).toBe(false)
+        result = useResponsive()
         return () => h('div')
       },
     })
 
-    mount(Consumer)
-    window.matchMedia = originalMatchMedia
+    vi.stubGlobal('matchMedia', undefined)
+    let wrapper: ReturnType<typeof mount> | undefined
+    try {
+      wrapper = mount(Consumer)
+      expect(result).toEqual({
+        xs: false, sm: false, md: false, lg: false, xl: false, xxl: false,
+        mobile: false, tablet: false, laptop: false, desktop: false,
+      })
+    } finally {
+      wrapper?.unmount()
+      vi.unstubAllGlobals()
+    }
   })
 })

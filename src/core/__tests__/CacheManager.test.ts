@@ -1,8 +1,30 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createEmotion } from '../createEmotion'
-import { createCacheManager } from '../CacheManager'
+import { createCacheManager, prepareGlobalStyleOrder } from '../CacheManager'
+import createExternalEmotion from '@emotion/css/create-instance'
 
 describe('CacheManager', () => {
+  it('preserves supplied CSSOM rules while adopting SSR globals and prepares a sheet once', () => {
+    const container = document.createElement('section')
+    document.head.append(container)
+    container.innerHTML = '<style data-emotion="supplied-global" data-antdv-global="v-0" data-antdv-global-ssr="">.target{color:blue;}</style>'
+    const engine = createExternalEmotion({ key: 'supplied', container, speedy: true })
+    engine.css({ color: 'red' })
+    try {
+      prepareGlobalStyleOrder(engine.cache)
+      const insert = Object.getOwnPropertyDescriptor(engine.sheet, 'insert')?.value
+      prepareGlobalStyleOrder(engine.cache)
+      expect(Object.getOwnPropertyDescriptor(engine.sheet, 'insert')?.value).toBe(insert)
+      expect(createCacheManager(engine).getStyles()).toContain('red')
+      expect(container.firstChild).toBe(engine.sheet.tags[0])
+      engine.css({ color: 'orange' })
+      expect(createCacheManager(engine).getStyles()).toContain('orange')
+    } finally {
+      engine.flush()
+      container.remove()
+    }
+  })
+
   it.each(['</style>', '</StYlE >', '</STYLE/>'])(
     'escapes HTML raw-text terminators without changing raw CSS: %s', (closing) => {
       const emotion = createEmotion({ key: 'raw-text' })
@@ -50,6 +72,7 @@ describe('CacheManager', () => {
     expect(typeof tags).toBe('string')
     expect(tags).toContain('data-emotion')
     expect(tags).toContain(className.replace(`${emotion.cache.key}-`, ''))
+    expect(tags.match(/<style /g)).toHaveLength(1)
   })
 
   it('should extract CSS from speedy CSSOM rules', () => {

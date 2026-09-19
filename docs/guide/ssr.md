@@ -49,16 +49,35 @@ export async function render() {
 
 ::: warning 当前边界
 `extractStaticStyle()` 或 HTML-first 形式会收集进程内已注册的实例。多租户 SSR 应显式传入当前请求的 `styleManager`，并在 `finally` 中调用 `dispose()`。
+
+`StyleProvider.ssrInline` 是兼容透传参数。当前 `@antdv-next/cssinjs@1.0.6`
+不会因为设置 `ssrInline: true` 自动向渲染结果插入 `<style>`。仍需显式调用
+`extractStaticStyle` 并将返回的 `tags` 写入 HTML，不能用此参数替代样式提取。
 :::
 
-## 关键样式
+## Vite SSR 配置
 
-当前依赖组合在 Vite SSR 中验证通过。若直接用 Node ESM 加载时遇到 `@v-c/picker` 的 `dayjs/plugin/advancedFormat` 无扩展名导入错误，请通过 Vite 打包这些依赖；这不是 `extractStaticStyle` 的报错：
+通过 npm 或 `.tgz` 安装时，需要让 Vite 同时处理 `antdv-style` 及以下依赖。
+否则外部化的 `antdv-style` 会通过 Node ESM 加载组件库，可能在
+`@v-c/picker` 的 `dayjs/plugin/advancedFormat` 无扩展名导入处失败；
+错误发生在 `extractStaticStyle` 执行之前。
 
 ```ts
 // vite.config.ts
-ssr: { noExternal: ['antdv-next', /^@v-c\//, '@antdv-next/cssinjs'] }
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  ssr: {
+    noExternal: ['antdv-style', 'antdv-next', /^@v-c\//, '@antdv-next/cssinjs'],
+  },
+})
 ```
+
+将 `ssr` 选项合并到项目现有的 Vite 配置中，保留已有插件和其他选项。
+仅配置组件库依赖不足以覆盖外部化的 `antdv-style`；源码 `link:` 安装可能掩盖这一差异。
+以上配置已用打包产物验证，不代表支持绕过打包器直接通过 Node ESM 加载。
+
+## 关键样式
 
 将渲染后的 HTML 作为 `options.html` 传入时，Emotion 只输出页面实际引用的 class，并保留全局样式和 keyframes：
 

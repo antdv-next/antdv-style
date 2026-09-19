@@ -55,6 +55,13 @@ useGlobalStyle()
 
 ## Notes
 
+- Within one engine, the main Emotion sheet (`css` / `createStyles` / `injectGlobal`)
+  precedes the separate `createGlobalStyle` sheets, which follow hook mount order.
+  Equal-priority rules cascade in that order, not the interleaved call order of
+  class and global factories. `insertionPoint` positions the engine without
+  reversing hook order. SSR extraction, hydration, and CSR use the same rule.
+- An initially or temporarily empty factory retains its position. Updates do not
+  move it; unmounting and remounting allocates a new position.
 - Must be called within a component that is a descendant of `<ThemeProvider>`.
 - The composable re-injects styles reactively whenever the theme changes.
 - In SSR environments styles are injected via the Emotion cache for server-side extraction.

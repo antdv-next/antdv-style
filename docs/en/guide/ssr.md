@@ -39,16 +39,39 @@ Pass the same request-local `antdCache` to `StyleProvider` and `extractStaticSty
 
 ::: warning Current boundary
 The zero-argument and HTML-first forms collect process-level registered instances. Multi-tenant SSR should pass the current request's `styleManager` explicitly and call `dispose()` in `finally`.
+
+`StyleProvider.ssrInline` is a compatibility passthrough. With the current
+`@antdv-next/cssinjs@1.0.6`, setting `ssrInline: true` does not automatically insert
+`<style>` tags into rendered HTML. Explicitly call `extractStaticStyle` and insert
+its `tags` into the HTML; this prop does not replace extraction.
 :::
 
-## Critical styles
+## Vite SSR configuration
 
-This dependency combination has been verified with Vite SSR. If raw Node ESM loading fails on the extensionless `dayjs/plugin/advancedFormat` import in `@v-c/picker`, bundle these dependencies through Vite; the failure occurs before `extractStaticStyle` runs:
+When installing from npm or a `.tgz`, Vite must process `antdv-style` together
+with the dependencies below. Otherwise the externalized runtime loads the
+component library through Node ESM, which can fail on the extensionless
+`dayjs/plugin/advancedFormat` import in `@v-c/picker`, before `extractStaticStyle`
+runs.
 
 ```ts
 // vite.config.ts
-ssr: { noExternal: ['antdv-next', /^@v-c\//, '@antdv-next/cssinjs'] }
+import { defineConfig } from 'vite'
+
+export default defineConfig({
+  ssr: {
+    noExternal: ['antdv-style', 'antdv-next', /^@v-c\//, '@antdv-next/cssinjs'],
+  },
+})
 ```
+
+Merge the `ssr` option into your existing Vite configuration, retaining its
+plugins and other options. Listing only the component-library dependencies does
+not cover an externalized `antdv-style`; source `link:` installs can hide this
+difference. This configuration is verified against packed artifacts, not raw
+Node ESM loading without a bundler.
+
+## Critical styles
 
 Pass rendered HTML as `options.html` to keep only referenced Emotion classes plus global styles and keyframes:
 

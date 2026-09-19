@@ -34,7 +34,7 @@ const useStyles = createStyles<{ compact: boolean }>(
 const { styles } = toRefs(useStyles(() => ({ compact: props.compact })))
 ```
 
-不要在 render 循环中重复创建 `createStyles`，也不要把不可序列化的大型对象作为 props 传入样式工厂。当前缓存键基于主题与 props 的 JSON 序列化结果。
+不要在 render 循环中重复创建 `createStyles`。缓存键由主题和 props 的自定义序列化生成，支持循环引用、BigInt、函数等输入；无法安全生成缓存键的非普通对象会跳过共享结果缓存。大型对象仍会增加缓存键计算成本，建议只传入样式需要的字段。工厂应是主题与 props 的纯函数，响应式状态通过 getter 显式传入，详见 [`createStyles` 的响应式输入与缓存](/api/create-styles#响应式输入与缓存)。
 
 ## 渐进迁移
 

@@ -20,7 +20,7 @@
 | `stylisPlugins` | `StylisPlugin[]` | — | Emotion 序列化插件 |
 | `getStyleManager` | `(engine) => void` | — | 获取当前作用域实际使用的 Emotion 实例 |
 | `hashPriority` | `'high' \| 'low'` | 继承父级；未配置时为 `'low'` | antdv-next 选择器优先级 |
-| `ssrInline` | `boolean` | — | antdv-next SSR 内联模式 |
+| `ssrInline` | `boolean` | — | 兼容透传参数；当前依赖不会自动输出内联样式 |
 | `transformers` | `Transformer[]` | — | antdv-next 样式转换器 |
 | `linters` | `Linter[]` | — | antdv-next 样式检查器 |
 | `layer` | `boolean` | — | 启用 antdv-next CSS layer |
@@ -62,6 +62,7 @@ onMounted(() => {
 
 - `StyleProvider` 不提供主题 Token；推荐使用 `<StyleProvider><ThemeProvider>...</ThemeProvider></StyleProvider>`，使主题生成的样式继承该引擎。
 - 用于 SSR 时，请传入与服务端缓存管理器相同的 `EmotionInstance`，以确保提取的样式一致。
+- 当前 `@antdv-next/cssinjs@1.0.6` 只接收 `ssrInline`，不会因其为 `true` 自动插入 `<style>`。请使用相同的请求级 `antdCache` 显式调用 `extractStaticStyle` 并将 `tags` 写入 HTML，见 [SSR 集成](../guide/ssr)。
 - `createInstance()` 返回的 `StyleProvider` 在只配置 `antdCache` 时，默认保留该实例的 Emotion 引擎。
 - `container`、缓存和其他引擎创建选项在挂载时确定。异步创建容器时，用 `v-if` 等待容器就绪；变更引擎配置需要重新挂载 Provider。
 - 当前 `@antdv-next/cssinjs` 的同前缀组件样式去重可能跨容器冲突。ShadowRoot 内的 antdv-next 组件请使用独立 `prefixCls`（如示例），并为弹层配置相同的挂载目标。此限制不影响 Emotion 自定义样式。

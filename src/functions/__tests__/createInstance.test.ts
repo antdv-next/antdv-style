@@ -28,6 +28,30 @@ describe('createInstance', () => {
     expect(instance.css).toBeDefined()
   })
 
+  it.each(['object', 'template'] as const)('keeps detached utility helpers scoped to their instance (%s)', (format) => {
+    const instance = createInstance({ key: 'detached-helpers' })
+    const other = createInstance({ key: 'other-helpers' })
+    const { keyframes, injectGlobal } = instance
+    try {
+      const animation = format === 'object'
+        ? keyframes({ from: { opacity: 0 }, to: { opacity: 1 } })
+        : keyframes`from { opacity: ${0}; } to { opacity: ${1}; }`
+      const injected = format === 'object'
+        ? injectGlobal({ '.detached-api-target': { animation: `${animation} 1s`, color: 'tomato' } })
+        : injectGlobal`.detached-api-target { animation: ${animation} 1s; color: tomato; }`
+      expect(injected).toBeUndefined()
+      const result = extractStaticStyle(instance.styleManager, { includeAntdv: false })
+      expect(result.css).toContain('@keyframes')
+      expect(result.css).toContain(animation)
+      expect(result.css).toContain('.detached-api-target')
+      expect(result.css).toContain('tomato')
+      expect(extractStaticStyle(other.styleManager, { includeAntdv: false }).css).toBe('')
+    } finally {
+      instance.dispose()
+      other.dispose()
+    }
+  })
+
   it('should preserve distinct configurations for instances sharing a key', () => {
     const speedy = createInstance({ key: 'shared-config', speedy: true })
     const regular = createInstance({ key: 'shared-config', speedy: false })
