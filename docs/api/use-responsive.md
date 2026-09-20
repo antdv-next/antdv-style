@@ -2,6 +2,10 @@
 
 基于 `window.matchMedia` 的响应式断点状态。
 
+<ResponsiveDemo />
+
+<ThemeVariantsDemo variant="responsive" />
+
 ## 签名
 
 ```typescript
@@ -50,6 +54,7 @@ const responsive = useResponsive()
 
 ## 注意事项
 
-- 状态是**单例** — 所有组件共享同一组 `matchMedia` 监听器。监听器在首次挂载时创建，在最后一个订阅者卸载时销毁。
+- 读取最近的 antdv-next `ConfigProvider`（包括 `ThemeProvider` 内部配置）的 `screenXSMax`、`screenSM` 至 `screenXXL` Token，并响应配置变更。上面的数值为默认值。
+- 相同断点配置共享 `matchMedia` 监听器，不同配置相互隔离；最后一个订阅者卸载后清理监听器。
 - **不**需要 `<ThemeProvider>`。
 - SSR 安全：当 `window.matchMedia` 不可用时，断点值默认为 `false`。

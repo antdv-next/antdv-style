@@ -4,13 +4,14 @@ import { defineComponent, h, type ComputedRef } from 'vue'
 import { createThemeProvider } from '../../factories/createThemeProvider'
 import { createEmotion } from '../../core'
 import { useAntdStylish } from '../useAntdStylish'
+import type { FullStylish } from '../../types'
 
 const emotion = createEmotion()
 const ThemeProvider = createThemeProvider(emotion)
 
 describe('useAntdStylish', () => {
-  it('should return empty object when no stylish defined', () => {
-    let result!: ComputedRef<Record<string, string>>
+  it('should return built-in antd stylish presets', () => {
+    let result!: ComputedRef<FullStylish>
     const Consumer = defineComponent({
       setup() {
         result = useAntdStylish()
@@ -22,11 +23,11 @@ describe('useAntdStylish', () => {
       slots: { default: () => h(Consumer) },
     })
 
-    expect(result.value).toEqual({})
+    expect(result.value.buttonDefaultHover).toEqual(expect.any(String))
   })
 
   it('should return stylish from ThemeProvider stylish prop', () => {
-    let result!: ComputedRef<Record<string, string>>
+    let result!: ComputedRef<FullStylish>
     const Consumer = defineComponent({
       setup() {
         result = useAntdStylish()
@@ -39,7 +40,7 @@ describe('useAntdStylish', () => {
       slots: { default: () => h(Consumer) },
     })
 
-    expect(result.value.card).toBe('card-class')
+    expect((result.value as FullStylish & { card: string }).card).toBe('card-class')
   })
 
   it('should throw when used outside ThemeProvider', () => {

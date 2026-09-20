@@ -29,11 +29,11 @@ export function createResponsiveUtil(
     md: `@media (max-width: ${token.screenMDMax ?? 991}px)`,
     lg: `@media (max-width: ${token.screenLGMax ?? 1199}px)`,
     xl: `@media (max-width: ${token.screenXLMax ?? 1599}px)`,
-    xxl: `@media (min-width: ${token.screenXXL ?? 1600}px)`,
+    xxl: `@media (min-width: ${token.screenXXLMin ?? token.screenXXL ?? 1600}px)`,
     mobile: `@media (max-width: ${token.screenXSMax ?? 575}px)`,
     tablet: `@media (max-width: ${token.screenMDMax ?? 991}px)`,
     laptop: `@media (max-width: ${token.screenLGMax ?? 1199}px)`,
-    desktop: `@media (min-width: ${token.screenXXL ?? 1600}px)`,
+    desktop: `@media (min-width: ${token.screenXXLMin ?? token.screenXXL ?? 1600}px)`,
   }
 
   const responsiveFn = (breakpoints: ResponsiveInput): string => {
@@ -48,14 +48,16 @@ export function createResponsiveUtil(
         if (typeof value === 'string') {
           // Already a class name string from css`` — extract CSS from cache
           const cacheKey = value.replace(`${emotion.cache.key}-`, '')
+          const registered = emotion.cache.registered[value]
           const cached = emotion.cache.inserted[cacheKey]
-          cssText = typeof cached === 'string' ? cached : value
+          cssText = registered ?? (typeof cached === 'string' ? cached : value)
         } else {
           // CSS object — serialize via emotion and extract from cache
           const className = emotion.css(value)
           const cacheKey = className.replace(`${emotion.cache.key}-`, '')
+          const registered = emotion.cache.registered[className]
           const cached = emotion.cache.inserted[cacheKey]
-          cssText = typeof cached === 'string' ? cached : ''
+          cssText = registered ?? (typeof cached === 'string' ? cached : '')
         }
 
         return `${mediaQuery} {${cssText}}`

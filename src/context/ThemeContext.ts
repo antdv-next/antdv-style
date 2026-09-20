@@ -4,6 +4,7 @@ import type { AntdToken, Theme } from '../types'
 export interface ThemeContext {
   theme: ComputedRef<Theme>
   antdToken: ComputedRef<AntdToken>
+  customToken?: ComputedRef<Record<string, unknown>>
   prefixCls: Readonly<Ref<string>>
   iconPrefixCls: Readonly<Ref<string>>
   cssVar: ComputedRef<Record<string, string>>

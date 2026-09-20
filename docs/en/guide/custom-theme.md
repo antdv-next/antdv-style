@@ -1,5 +1,9 @@
 # Theme Customization
 
+<ThemeVariantsDemo variant="appearance" />
+
+<CustomThemeDemo />
+
 ## Custom Tokens
 
 Add application-specific tokens via `ThemeProvider`:

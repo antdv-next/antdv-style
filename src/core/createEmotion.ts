@@ -3,35 +3,27 @@ import createEmotionInstance, {
   type EmotionCache,
   type CSSInterpolation,
   type ClassNamesArg,
+  type Options as EmotionOptions,
 } from '@emotion/css/create-instance'
 import { DEFAULT_CSS_PREFIX_KEY } from './constants'
+import { flushManagedSheets, prepareGlobalStyleOrder } from './CacheManager'
 
-export interface CreateEmotionOptions {
+export interface CreateEmotionOptions extends Omit<EmotionOptions, 'key'> {
   key?: string
-  container?: HTMLElement
 }
 
-export interface EmotionInstance {
-  css: Emotion['css']
-  cx: Emotion['cx']
-  keyframes: Emotion['keyframes']
-  cache: EmotionCache
-  injectGlobal: Emotion['injectGlobal']
-  flush: Emotion['flush']
-}
+export type EmotionInstance = Emotion
 
 export function createEmotion(options?: CreateEmotionOptions): EmotionInstance {
-  const { key = DEFAULT_CSS_PREFIX_KEY, container } = options ?? {}
-  const instance = createEmotionInstance({ key, container })
-
-  return {
-    css: (...args) => instance.css(...args),
-    cx: (...args) => instance.cx(...args),
-    keyframes: (...args) => instance.keyframes(...args),
-    cache: instance.cache,
-    injectGlobal: (...args) => instance.injectGlobal(...args),
-    flush: () => instance.flush(),
+  const key = options?.key ?? DEFAULT_CSS_PREFIX_KEY
+  const emotion = createEmotionInstance({ ...options, key })
+  prepareGlobalStyleOrder(emotion.cache)
+  const flush = emotion.flush.bind(emotion)
+  emotion.flush = () => {
+    flushManagedSheets(emotion.cache)
+    flush()
   }
+  return emotion
 }
 
 export type { EmotionCache, CSSInterpolation, ClassNamesArg }

@@ -1,5 +1,9 @@
 # 主题定制
 
+<ThemeVariantsDemo variant="appearance" />
+
+<CustomThemeDemo />
+
 ## 自定义 Token
 
 通过 `ThemeProvider` 添加应用特定的 Token：

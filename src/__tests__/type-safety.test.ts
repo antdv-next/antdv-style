@@ -30,21 +30,26 @@ describe('Type Safety', () => {
       }
     })
 
+    let result!: ReturnType<typeof useStyles>
     const Consumer = defineComponent({
       setup() {
-        const { styles } = useStyles()
-        expect(styles.header).toBeDefined()
+        result = useStyles()
         return () => h('div')
       },
     })
 
-    mount(ThemeProvider, {
+    const wrapper = mount(ThemeProvider, {
       props: {
         themeMode: 'light',
         customToken: { brandColor: '#7c3aed', headerHeight: 64 },
       },
       slots: { default: () => h(Consumer) },
     })
+    try {
+      expect(result.styles.header).toBeDefined()
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   it('useTheme should return typed token with CustomToken properties', () => {

@@ -1,52 +1,31 @@
-import { inject, computed, type ComputedRef } from 'vue'
+import { toRef, type ComputedRef } from 'vue'
 import type { EmotionInstance } from '../core'
-import type { CreateStylesUtils } from '../types'
-import { ThemeContextKey, ThemeModeKey, StyleEngineKey } from '../context'
+import type { CreateStylesUtils, StyleFactoryInput, StyleInput, StyleResult } from '../types'
+import { makeCreateStyles } from './createStyles'
 import type { ContextKeys } from '../context'
-import { createResponsiveUtil } from '../utils'
 
-type StylishFactory<T extends Record<string, string>> = (utils: CreateStylesUtils) => T
+type StylishFactory<P, T extends StyleFactoryInput> = (utils: CreateStylesUtils, props: P) => T
+type StylishInput<P, T extends StyleFactoryInput> = T | StylishFactory<P, T>
 
 export interface MakeCreateStylishOptions {
   cssVar?: Record<string, string>
+  hashPriority?: 'high' | 'low'
 }
 
 export function makeCreateStylish(defaultEmotion: EmotionInstance, keys?: ContextKeys, options?: MakeCreateStylishOptions) {
-  const cssVar = options?.cssVar ?? {}
-  const themeKey = keys?.themeContextKey ?? ThemeContextKey
-  const modeKey = keys?.themeModeKey ?? ThemeModeKey
-  const engineKey = keys?.styleEngineKey ?? StyleEngineKey
+  const createStyles = makeCreateStyles(defaultEmotion, {
+    cssVar: options?.cssVar,
+    hashPriority: options?.hashPriority,
+  }, keys)
 
-  return function createStylish<T extends Record<string, string>>(factory: StylishFactory<T>) {
-    return function useStylish(): ComputedRef<T> {
-      const themeCtx = inject(themeKey)
-      const modeCtx = inject(modeKey)
-      const engine = inject(engineKey) ?? defaultEmotion
+  return function createStylish<P = void, T extends StyleFactoryInput = StyleInput>(
+    factory: StylishInput<P, T>,
+  ) {
+    const useStyles = createStyles<P, T>(factory)
 
-      if (!themeCtx || !modeCtx) {
-        throw new Error('createStylish: must be used within a <ThemeProvider>')
-      }
-
-      return computed(() => {
-        const themeValue = themeCtx.theme.value
-        const responsive = createResponsiveUtil(themeValue, engine)
-        const effectiveCssVar = themeCtx.cssVar?.value ?? cssVar
-
-        const utils: CreateStylesUtils = {
-          token: themeValue,
-          css: engine.css,
-          cx: engine.cx,
-          prefixCls: themeValue.prefixCls,
-          iconPrefixCls: themeValue.iconPrefixCls,
-          isDarkMode: themeValue.isDarkMode,
-          appearance: themeValue.appearance,
-          responsive,
-          stylish: themeValue.stylish,
-          cssVar: effectiveCssVar,
-        }
-
-        return factory(utils)
-      })
+    return function useStylish(propsOrGetter?: P | (() => P)): ComputedRef<StyleResult<T>> {
+      const result = useStyles(propsOrGetter)
+      return toRef(result, 'styles') as unknown as ComputedRef<StyleResult<T>>
     }
   }
 }

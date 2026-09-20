@@ -1,25 +1,107 @@
 import {
-  defineComponent,
-  provide,
-  inject,
+  ConfigProvider,
+  theme as antdTheme,
+  useMessage,
+  useModal,
+  useNotification,
+} from 'antdv-next'
+import { useConfig as useAntdvConfig } from 'antdv-next/dist/config-provider/context'
+import {
   computed,
-  ref,
-  toRef,
-  watch,
+  defineComponent,
+  h,
+  inject,
   onMounted,
   onUnmounted,
+  provide,
+  ref,
+  watch,
   type PropType,
   type Ref,
+  type VNodeChild,
 } from 'vue'
 import type { EmotionInstance } from '../core'
-import { DEFAULT_PREFIX_CLS, DEFAULT_ICON_PREFIX_CLS, DEFAULT_CSS_VAR_PREFIX } from '../core/constants'
-import type { AntdToken, FullToken, ThemeMode, Appearance, BrowserPrefers, ThemeConfig, ThemeFunction, Theme } from '../types'
-import { StyleEngineKey, ThemeModeKey, ThemeContextKey } from '../context'
+import {
+  DEFAULT_CSS_VAR_PREFIX,
+  DEFAULT_ICON_PREFIX_CLS,
+  DEFAULT_PREFIX_CLS,
+} from '../core/constants'
+import { StyleEngineKey, ThemeContextKey, ThemeModeKey } from '../context'
 import type { ContextKeys, ThemeModeContext } from '../context'
+import type {
+  AntdStylish,
+  AntdToken,
+  Appearance,
+  BrowserPrefers,
+  FullStylish,
+  FullToken,
+  Theme,
+  ThemeConfig,
+  ThemeFunction,
+  ThemeMode,
+} from '../types'
 import { createCSSVarProxy } from '../utils/cssVar'
-import { theme as antdTheme } from 'antdv-next'
 
-export function createThemeProvider(emotion: EmotionInstance, keys?: ContextKeys) {
+export interface StaticInstance {
+  message: ReturnType<typeof useMessage>[0]
+  notification: ReturnType<typeof useNotification>[0]
+  modal: ReturnType<typeof useModal>[0]
+}
+
+export interface CreateThemeProviderDefaults {
+  prefixCls?: string
+  iconPrefixCls?: string
+  cssVarPrefix?: string
+  customToken?: Record<string, unknown>
+}
+
+export interface ThemeProviderProps<T = Record<string, unknown>, S = Record<string, string>> {
+  themeMode?: ThemeMode
+  defaultThemeMode?: ThemeMode
+  appearance?: Appearance
+  defaultAppearance?: Appearance
+  customToken?: T | ((params: { token: AntdToken; appearance: Appearance; isDarkMode: boolean }) => T)
+  theme?: ThemeConfig | ThemeFunction
+  prefixCls?: string
+  iconPrefixCls?: string
+  stylish?: S | ((params: {
+    token: FullToken & T
+    stylish: AntdStylish
+    appearance: Appearance
+    isDarkMode: boolean
+    css: EmotionInstance['css']
+  }) => S)
+  customStylish?: (params: {
+    token: FullToken & T
+    stylish: AntdStylish
+    appearance: Appearance
+    isDarkMode: boolean
+    css: EmotionInstance['css']
+  }) => S
+  onAppearanceChange?: (appearance: Appearance) => void
+  onThemeModeChange?: (themeMode: ThemeMode) => void
+  getStaticInstance?: (instances: StaticInstance) => void
+  staticInstanceConfig?: {
+    message?: Parameters<typeof useMessage>[0]
+    notification?: Parameters<typeof useNotification>[0]
+  }
+}
+
+const themeStateKeys = new Set([
+  'stylish',
+  'appearance',
+  'isDarkMode',
+  'themeMode',
+  'browserPrefers',
+  'prefixCls',
+  'iconPrefixCls',
+])
+
+export function createThemeProvider(
+  defaultEmotion: EmotionInstance,
+  keys?: ContextKeys,
+  defaults?: CreateThemeProviderDefaults,
+) {
   const styleEngineKey = keys?.styleEngineKey ?? StyleEngineKey
   const themeModeKey = keys?.themeModeKey ?? ThemeModeKey
   const themeContextKey = keys?.themeContextKey ?? ThemeContextKey
@@ -27,228 +109,154 @@ export function createThemeProvider(emotion: EmotionInstance, keys?: ContextKeys
   return defineComponent({
     name: 'ThemeProvider',
     props: {
-      themeMode: {
-        type: String as PropType<ThemeMode>,
-        default: undefined,
-      },
-      defaultThemeMode: {
-        type: String as PropType<ThemeMode>,
-        default: undefined,
-      },
-      appearance: {
-        type: String as PropType<Appearance>,
-        default: undefined,
-      },
-      defaultAppearance: {
-        type: String as PropType<Appearance>,
-        default: undefined,
-      },
+      themeMode: String as PropType<ThemeMode>,
+      defaultThemeMode: String as PropType<ThemeMode>,
+      appearance: String as PropType<Appearance>,
+      defaultAppearance: String as PropType<Appearance>,
       customToken: {
         type: [Object, Function] as PropType<
           | Record<string, unknown>
           | ((params: { token: AntdToken; appearance: Appearance; isDarkMode: boolean }) => Record<string, unknown>)
         >,
-        default: undefined,
       },
-      theme: {
-        type: [Object, Function] as PropType<ThemeConfig | ThemeFunction>,
-        default: undefined,
-      },
+      theme: [Object, Function] as PropType<ThemeConfig | ThemeFunction>,
       prefixCls: {
         type: String,
-        default: DEFAULT_PREFIX_CLS,
+        default: undefined,
       },
       iconPrefixCls: {
         type: String,
-        default: DEFAULT_ICON_PREFIX_CLS,
+        default: undefined,
       },
       stylish: {
         type: [Object, Function] as PropType<
           | Record<string, string>
-          | ((params: { token: FullToken; stylish: Record<string, string>; appearance: Appearance; isDarkMode: boolean; css: EmotionInstance['css'] }) => Record<string, string>)
+          | ((params: {
+              token: FullToken
+              stylish: AntdStylish
+              appearance: Appearance
+              isDarkMode: boolean
+              css: EmotionInstance['css']
+            }) => Record<string, string>)
         >,
-        default: undefined,
       },
+      customStylish: Function as PropType<(params: {
+        token: FullToken
+        stylish: AntdStylish
+        appearance: Appearance
+        isDarkMode: boolean
+        css: EmotionInstance['css']
+      }) => Record<string, string>>,
+      onAppearanceChange: Function as PropType<(appearance: Appearance) => void>,
+      onThemeModeChange: Function as PropType<(themeMode: ThemeMode) => void>,
+      getStaticInstance: Function as PropType<(instances: StaticInstance) => void>,
+      staticInstanceConfig: Object as PropType<{
+        message?: Parameters<typeof useMessage>[0]
+        notification?: Parameters<typeof useNotification>[0]
+      }>,
     },
     emits: ['appearanceChange', 'themeModeChange'],
     setup(props, { slots, emit }) {
-      const prefixCls = toRef(props, 'prefixCls')
-      const iconPrefixCls = toRef(props, 'iconPrefixCls')
-
-      // Get antdv-next's token from the nearest ConfigProvider via theme.useToken().
-      // Returns { theme, token, hashId } where token is a Ref<GlobalToken>.
-      // Gracefully handle when useToken fails (e.g., no ConfigProvider ancestor in tests).
-      let antdTokenRef: Ref<AntdToken> | null = null
-      try {
-        if (antdTheme?.useToken) {
-          const result = antdTheme.useToken()
-          antdTokenRef = result.token
-        }
-      } catch {
-        // useToken() failed — fall back to manual token from props
-      }
-
-      // Build cssVar proxy — prefix defaults to 'ant' matching antdv-next's cssVar.prefix
-      const cssVarComputed = computed<Record<string, string>>(() => {
-        return createCSSVarProxy({ prefix: DEFAULT_CSS_VAR_PREFIX })
-      })
-
-      // Try to inject parent contexts for nesting inheritance
       const parentModeCtx = inject(themeModeKey, undefined) as ThemeModeContext | undefined
       const parentThemeCtx = inject(themeContextKey, undefined)
+      const antdvConfig = useAntdvConfig()
+      const emotion = inject(styleEngineKey, defaultEmotion)
+      const prefixCls = computed(() => (
+        props.prefixCls
+        ?? parentThemeCtx?.prefixCls.value
+        ?? defaults?.prefixCls
+        ?? antdvConfig.value.getPrefixCls?.()
+        ?? DEFAULT_PREFIX_CLS
+      ))
+      const iconPrefixCls = computed(() => (
+        props.iconPrefixCls
+        ?? parentThemeCtx?.iconPrefixCls.value
+        ?? defaults?.iconPrefixCls
+        ?? antdvConfig.value.iconPrefixCls
+        ?? DEFAULT_ICON_PREFIX_CLS
+      ))
 
-      // Internal themeMode state (for uncontrolled mode)
-      const internalThemeMode = ref<ThemeMode>(
-        props.themeMode ?? props.defaultThemeMode ?? parentModeCtx?.themeMode.value ?? 'light',
-      )
-
-      // Internal appearance state (for uncontrolled mode when appearance prop is set directly)
+      const internalThemeMode = ref<ThemeMode | undefined>(props.defaultThemeMode)
       const internalAppearance = ref<Appearance | undefined>(
-        props.appearance ?? props.defaultAppearance ?? undefined,
+        props.defaultAppearance,
       )
+      const effectiveThemeMode = computed<ThemeMode>(() => (
+        props.themeMode
+        ?? internalThemeMode.value
+        ?? parentModeCtx?.themeMode.value
+        ?? 'light'
+      ))
+      const hasLocalThemeMode = computed(() => (
+        props.themeMode !== undefined || internalThemeMode.value !== undefined
+      ))
 
-      // Effective themeMode: controlled prop > internal state
-      const effectiveThemeMode = computed<ThemeMode>(() => {
-        return props.themeMode ?? internalThemeMode.value
-      })
-
-      // Track browser's preferred color scheme
       const canMatchMedia = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       const browserPrefers = ref<BrowserPrefers>(
-        canMatchMedia ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : 'light',
+        canMatchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
       )
       let mediaQuery: MediaQueryList | null = null
+      let mediaHandler: ((event: MediaQueryListEvent) => void) | null = null
 
       onMounted(() => {
-        if (canMatchMedia) {
-          mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-          browserPrefers.value = mediaQuery.matches ? 'dark' : 'light'
-          const handler = (e: MediaQueryListEvent) => {
-            browserPrefers.value = e.matches ? 'dark' : 'light'
-          }
-          mediaQuery.addEventListener('change', handler)
-          onUnmounted(() => {
-            mediaQuery?.removeEventListener('change', handler)
-          })
+        if (!canMatchMedia) return
+        mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+        browserPrefers.value = mediaQuery.matches ? 'dark' : 'light'
+        mediaHandler = (event) => {
+          browserPrefers.value = event.matches ? 'dark' : 'light'
         }
+        mediaQuery.addEventListener('change', mediaHandler)
       })
 
-      // Computed appearance: controlled appearance > derived from themeMode
+      onUnmounted(() => {
+        if (mediaQuery && mediaHandler) mediaQuery.removeEventListener('change', mediaHandler)
+      })
+
       const computedAppearance = computed<Appearance>(() => {
-        // If controlled appearance prop is provided, use it
-        if (props.appearance) return props.appearance
-        // If internal appearance is set (from setAppearance or defaultAppearance), use it
-        if (internalAppearance.value) return internalAppearance.value
-        // Otherwise derive from themeMode
-        switch (effectiveThemeMode.value) {
-          case 'dark':
-            return 'dark'
-          case 'auto':
-            return browserPrefers.value === 'dark' ? 'dark' : 'light'
-          case 'light':
-          default:
-            return 'light'
-        }
+        if (props.appearance !== undefined) return props.appearance
+        if (internalAppearance.value !== undefined) return internalAppearance.value
+        if (!hasLocalThemeMode.value && parentModeCtx) return parentModeCtx.appearance.value
+        return effectiveThemeMode.value === 'auto' ? browserPrefers.value : effectiveThemeMode.value
       })
-
       const isDarkMode = computed(() => computedAppearance.value === 'dark')
 
-      // Setter functions
+      let pendingAppearance: Appearance | undefined
+      let pendingThemeMode: ThemeMode | undefined
       const setAppearance = (appearance: Appearance) => {
-        internalAppearance.value = appearance
-      }
-
-      const setThemeMode = (themeMode: ThemeMode) => {
-        internalThemeMode.value = themeMode
-        // When themeMode changes, reset internal appearance to let themeMode drive it
-        internalAppearance.value = undefined
-      }
-
-      watch(computedAppearance, (val) => emit('appearanceChange', val))
-      watch(effectiveThemeMode, (val) => emit('themeModeChange', val))
-
-      // antdToken: start with antdv-next's auto-detected token (from nearest ConfigProvider),
-      // then merge user-provided theme token on top as overrides
-      const antdToken = computed<AntdToken>(() => {
-        // Start with antdv-next's auto-detected token if available
-        const baseToken = antdTokenRef
-          ? { ...antdTokenRef.value }
-          : {} as AntdToken
-
-        // If user provided a theme prop, merge its token on top
-        if (props.theme) {
-          const themeConfig = typeof props.theme === 'function'
-            ? props.theme(computedAppearance.value)
-            : props.theme
-          Object.assign(baseToken, themeConfig.token ?? {})
+        if (props.appearance !== undefined) {
+          pendingAppearance = appearance
+          if (appearance !== computedAppearance.value) emit('appearanceChange', appearance)
+        } else {
+          internalAppearance.value = appearance
         }
-        return baseToken
-      })
-
-      // Inherit parent's custom token for nesting (upstream: defaultCustomToken from context)
-      const parentCustomToken = computed<Record<string, unknown>>(() => {
-        if (!parentThemeCtx) return {}
-        // Extract custom fields: parent theme minus base antd token
-        const parentTheme = parentThemeCtx.theme.value
-        const parentBase = parentThemeCtx.antdToken.value
-        const custom: Record<string, unknown> = {}
-        for (const key of Object.keys(parentTheme)) {
-          if (!(key in parentBase) && !['stylish', 'appearance', 'isDarkMode', 'themeMode', 'browserPrefers', 'prefixCls', 'iconPrefixCls'].includes(key)) {
-            custom[key] = parentTheme[key as keyof Theme]
+      }
+      const setThemeMode = (mode: ThemeMode) => {
+        if (props.themeMode !== undefined) {
+          if (mode === effectiveThemeMode.value) {
+            internalAppearance.value = undefined
+            pendingThemeMode = undefined
+          } else {
+            pendingThemeMode = mode
+            emit('themeModeChange', mode)
           }
+        } else {
+          internalThemeMode.value = mode
+          internalAppearance.value = undefined
         }
-        return custom
-      })
+      }
 
-      // Resolve customToken (supports function form), merged with parent's custom token
-      const resolvedCustomToken = computed<Record<string, unknown>>(() => {
-        const inherited = parentCustomToken.value
-        let current: Record<string, unknown> = {}
-        if (typeof props.customToken === 'function') {
-          current = props.customToken({
-            token: antdToken.value,
-            appearance: computedAppearance.value,
-            isDarkMode: isDarkMode.value,
-          })
-        } else if (props.customToken) {
-          current = props.customToken
+      watch(computedAppearance, (value, previous) => {
+        if (value !== previous && value !== pendingAppearance) {
+          emit('appearanceChange', value)
         }
-        return { ...inherited, ...current }
+        pendingAppearance = undefined
       })
-
-      // Resolve stylish (supports function form)
-      // Note: stylish param is {} because antdv-next has no built-in antd stylish (verified in source).
-      // TODO: When nesting ThemeProviders, consider injecting parent's resolved stylish here.
-      const resolvedStylish = computed<Record<string, string>>(() => {
-        if (!props.stylish) return {}
-        if (typeof props.stylish === 'function') {
-          return props.stylish({
-            token: { ...antdToken.value, ...resolvedCustomToken.value },
-            stylish: {},
-            appearance: computedAppearance.value,
-            isDarkMode: isDarkMode.value,
-            css: emotion.css,
-          })
+      watch(effectiveThemeMode, (value, previous) => {
+        if (value === pendingThemeMode) {
+          internalAppearance.value = undefined
+        } else if (value !== previous) {
+          emit('themeModeChange', value)
         }
-        return props.stylish
-      })
-
-      // Build the complete Theme object
-      const theme = computed<Theme>(() => {
-        const mergedToken = {
-          ...antdToken.value,
-          ...resolvedCustomToken.value,
-        }
-        return {
-          ...mergedToken,
-          stylish: resolvedStylish.value,
-          appearance: computedAppearance.value,
-          isDarkMode: isDarkMode.value,
-          themeMode: effectiveThemeMode.value,
-          browserPrefers: browserPrefers.value,
-          prefixCls: prefixCls.value,
-          iconPrefixCls: iconPrefixCls.value,
-        } as Theme
+        pendingThemeMode = undefined
       })
 
       provide(styleEngineKey, emotion)
@@ -261,15 +269,163 @@ export function createThemeProvider(emotion: EmotionInstance, keys?: ContextKeys
         setThemeMode,
       })
 
-      provide(themeContextKey, {
-        theme,
-        antdToken,
-        prefixCls,
-        iconPrefixCls,
-        cssVar: cssVarComputed,
+      const resolvedAntdvTheme = computed<ThemeConfig>(() => {
+        const configured = typeof props.theme === 'function'
+          ? props.theme(computedAppearance.value)
+          : props.theme
+        const baseAlgorithm = isDarkMode.value ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm
+        const configuredAlgorithms = configured?.algorithm
+          ? Array.isArray(configured.algorithm) ? configured.algorithm : [configured.algorithm]
+          : []
+
+        return {
+          ...configured,
+          // Component CSS must be isolated when providers use different variable prefixes.
+          hashed: configured?.hashed ?? antdvConfig.value.theme?.hashed ?? true,
+          cssVar: defaults?.cssVarPrefix === undefined
+            ? configured?.cssVar
+            : {
+                prefix: defaults.cssVarPrefix,
+                ...(typeof configured?.cssVar === 'object' ? configured.cssVar : {}),
+              },
+          algorithm: configuredAlgorithms.length > 0
+            ? [baseAlgorithm, ...configuredAlgorithms]
+            : baseAlgorithm,
+        }
       })
 
-      return () => slots.default?.()
+      const ThemeContent = defineComponent({
+        name: 'AntdvStyleThemeContent',
+        setup() {
+          const effectiveConfig = useAntdvConfig()
+          const tokenResult = antdTheme.useToken()
+          const antdToken = computed<AntdToken>(() => ({
+            ...tokenResult.token.value,
+            ...resolvedAntdvTheme.value.token,
+          }))
+          const cssVar = computed(() => {
+            const config = effectiveConfig.value.theme?.cssVar
+            return createCSSVarProxy({
+              prefix: (typeof config === 'object' ? config.prefix : undefined)
+                ?? DEFAULT_CSS_VAR_PREFIX,
+            })
+          })
+
+          const inheritedCustomToken = computed<Record<string, unknown>>(() => {
+            const inherited: Record<string, unknown> = { ...defaults?.customToken }
+            if (!parentThemeCtx) return inherited
+            if (parentThemeCtx.customToken) {
+              return { ...inherited, ...parentThemeCtx.customToken.value }
+            }
+
+            // Backward-compatible fallback for contexts created by an older package copy.
+            const parentTheme = parentThemeCtx.theme.value
+            const parentAntdToken = parentThemeCtx.antdToken.value
+            for (const key of Object.keys(parentTheme)) {
+              if (!(key in parentAntdToken) && !themeStateKeys.has(key)) {
+                inherited[key] = parentTheme[key as keyof Theme]
+              }
+            }
+            return inherited
+          })
+
+          const resolvedCustomToken = computed<Record<string, unknown>>(() => {
+            const current = typeof props.customToken === 'function'
+              ? props.customToken({
+                  token: antdToken.value,
+                  appearance: computedAppearance.value,
+                  isDarkMode: isDarkMode.value,
+                })
+              : props.customToken ?? {}
+            return { ...inheritedCustomToken.value, ...current }
+          })
+
+          const antdStylish = computed<AntdStylish>(() => ({
+            buttonDefaultHover: emotion.css({
+              backgroundColor: antdToken.value.colorBgContainer,
+              border: `1px solid ${antdToken.value.colorBorder}`,
+              cursor: 'pointer',
+              ':hover': {
+                color: antdToken.value.colorPrimaryHover,
+                borderColor: antdToken.value.colorPrimaryHover,
+              },
+              ':active': {
+                color: antdToken.value.colorPrimaryActive,
+                borderColor: antdToken.value.colorPrimaryActive,
+              },
+            }),
+          }))
+
+          const resolvedStylish = computed<FullStylish>(() => {
+            const stylishFactory = props.customStylish
+              ?? (typeof props.stylish === 'function' ? props.stylish : undefined)
+            const custom = stylishFactory
+              ? stylishFactory({
+                  token: { ...antdToken.value, ...resolvedCustomToken.value } as FullToken,
+                  stylish: antdStylish.value,
+                  appearance: computedAppearance.value,
+                  isDarkMode: isDarkMode.value,
+                  css: emotion.css.bind(emotion),
+                })
+              : typeof props.stylish === 'object' ? props.stylish : {}
+            return {
+              ...(parentThemeCtx?.theme.value.stylish ?? {}),
+              ...custom,
+              ...antdStylish.value,
+            } as FullStylish
+          })
+
+          const theme = computed<Theme>(() => ({
+            ...antdToken.value,
+            ...resolvedCustomToken.value,
+            stylish: resolvedStylish.value,
+            appearance: computedAppearance.value,
+            isDarkMode: isDarkMode.value,
+            themeMode: effectiveThemeMode.value,
+            browserPrefers: browserPrefers.value,
+            prefixCls: prefixCls.value,
+            iconPrefixCls: iconPrefixCls.value,
+          }) as Theme)
+
+          provide(themeContextKey, {
+            theme,
+            antdToken,
+            customToken: resolvedCustomToken,
+            prefixCls,
+            iconPrefixCls,
+            cssVar,
+          })
+
+          const [messageApi, messageHolder] = useMessage(props.staticInstanceConfig?.message)
+          const [notificationApi, notificationHolder] = useNotification(props.staticInstanceConfig?.notification)
+          const [modalApi, ModalHolder] = useModal()
+
+          onMounted(() => {
+            props.getStaticInstance?.({
+              message: messageApi,
+              notification: notificationApi,
+              modal: modalApi,
+            })
+          })
+
+          return () => [
+            messageHolder(),
+            notificationHolder(),
+            h(ModalHolder),
+            ...(slots.default?.() ?? []),
+          ] as VNodeChild
+        },
+      })
+
+      return () => h(
+        ConfigProvider,
+        {
+          prefixCls: prefixCls.value,
+          iconPrefixCls: iconPrefixCls.value,
+          theme: resolvedAntdvTheme.value,
+        },
+        { default: () => h(ThemeContent) },
+      )
     },
   })
 }

@@ -1,0 +1,54 @@
+{
+  "name": "@antdv-next/less2cssinjs",
+  "version": "1.0.0-rc.1",
+  "description": "Conservative Vue SFC Less CSS Module migration to antdv-style",
+  "keywords": ["less", "codemod", "antdv-style", "vue", "css-in-js"],
+  "homepage": "https://github.com/antdv-next/antdv-style",
+  "bugs": { "url": "https://github.com/antdv-next/antdv-style/issues" },
+  "license": "MIT",
+  "author": "darkingtail(darkingtail@gmail.com)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/antdv-next/antdv-style.git",
+    "directory": "packages/less2cssinjs"
+  },
+  "publishConfig": { "access": "public" },
+  "files": ["dist"],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "antdv-style-codemod": "./dist/cli/codemod.js"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@chenshuai2144/less2cssinjs": "1.0.7",
+    "@babel/parser": "^7.29.2",
+    "@babel/traverse": "^7.29.0",
+    "@vue/compiler-dom": "^3.5.31",
+    "@vue/compiler-sfc": "^3.5.31",
+    "magic-string": "^0.30.21",
+    "less": "^4.9.1",
+    "postcss": "^8.5.8",
+    "postcss-less": "^6.0.0",
+    "postcss-selector-parser": "^7.1.0",
+    "postcss-value-parser": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/less": "^3.0.8",
+    "@types/babel__traverse": "^7.28.0"
+  }
+}

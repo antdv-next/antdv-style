@@ -2,6 +2,41 @@
 
 The core API for creating scoped component styles with token access.
 
+<CreateStylesDemo />
+
+## Runnable Examples
+
+### Plain Style Objects
+
+<CreateStylesVariantsDemo variant="static" />
+
+### Tokens and Shared Styles
+
+<CreateStylesVariantsDemo variant="tokens" />
+
+### Props-driven Select Overrides
+
+Opening the select changes its outline. Selecting Option 1 changes its background.
+A Vue props getter tracks both values.
+
+<CreateStylesVariantsDemo variant="props" />
+
+### Separate Style Files and cx
+
+Filter and select commands; `cx` composes the selected style with the base style.
+
+<CreateStylesVariantsDemo variant="command" />
+
+<<< @/.vitepress/theme/components/examples/commandStyles.ts
+
+### Two Keyframes Forms
+
+<CreateStylesVariantsDemo variant="keyframes" />
+
+Complete Vue example source:
+
+<<< @/.vitepress/theme/components/CreateStylesVariantsDemo.vue
+
 ## Basic Usage
 
 ```typescript

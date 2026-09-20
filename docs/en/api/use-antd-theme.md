@@ -8,7 +8,8 @@ Access antd theme with token fields spread at top level.
 function useAntdTheme(): ComputedRef<AntdTheme>
 
 type AntdTheme = AntdToken & {
-  stylish: Record<string, string>
+  stylish: FullStylish
+  cssVar: Record<string, string>
 }
 ```
 
@@ -18,4 +19,5 @@ Token fields are spread at top level (not nested under `.token`):
 const theme = useAntdTheme()
 theme.value.colorPrimary  // direct access
 theme.value.stylish       // stylish presets
+theme.value.cssVar.colorPrimary // var(--ant-color-primary)
 ```

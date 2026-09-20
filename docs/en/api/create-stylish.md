@@ -1,5 +1,7 @@
 # createStylish
 
+<RuntimeCapabilitiesDemo variant="stylish" />
+
 Create a reusable set of named class-name presets derived from the theme token.
 
 ## Signature

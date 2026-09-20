@@ -2,13 +2,15 @@ import { inject, computed, type ComputedRef } from 'vue'
 import { ThemeContextKey } from '../context'
 import type { ContextKeys } from '../context'
 import type { AntdToken } from '../types'
+import type { FullStylish } from '../types'
 
 /**
  * AntdTheme matches upstream: token fields are spread at top level + stylish.
  * Upstream: `interface AntdTheme extends AntdToken { stylish: AntdStylish }`
  */
 export type AntdTheme = AntdToken & {
-  stylish: Record<string, string>
+  stylish: FullStylish
+  cssVar: Record<string, string>
 }
 
 export function makeUseAntdTheme(keys?: ContextKeys) {
@@ -23,6 +25,7 @@ export function makeUseAntdTheme(keys?: ContextKeys) {
     return computed(() => ({
       ...themeCtx.antdToken.value,
       stylish: themeCtx.theme.value.stylish,
+      cssVar: themeCtx.cssVar.value,
     }))
   }
 }

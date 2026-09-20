@@ -1,10 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent, inject, h, nextTick } from 'vue'
-import { createThemeProvider } from '../createThemeProvider'
-import { createEmotion } from '../../core'
+import { ConfigProvider } from 'antdv-next'
+import { useConfig } from 'antdv-next/dist/config-provider/context'
+import { createThemeProvider, type ThemeProviderProps } from '../createThemeProvider'
+import { createCacheManager, createEmotion } from '../../core'
 import { ThemeContextKey, ThemeModeKey, StyleEngineKey } from '../../context'
 import type { Theme } from '../../types'
+import type { ThemeModeContext } from '../../context'
 
 const emotion = createEmotion()
 const ThemeProvider = createThemeProvider(emotion)
@@ -27,6 +30,112 @@ const Consumer = defineComponent({
 })
 
 describe('ThemeProvider', () => {
+  it.each(['customStylish', 'stylish'] as const)('provides a callable css helper to %s factories across theme updates', async (prop) => {
+    const engine = createEmotion({ key: 'stylish-helper', speedy: false })
+    const Provider = createThemeProvider(engine)
+    const manager = createCacheManager(engine)
+    const factory: NonNullable<ThemeProviderProps['customStylish']> = ({ css, token }) => ({
+      accent: css({ color: token.colorPrimary }),
+    })
+    const Child = defineComponent({
+      setup() {
+        const context = inject(ThemeContextKey)!
+        return () => h('div', {
+          class: (context.theme.value.stylish as Theme['stylish'] & { accent: string }).accent,
+        })
+      },
+    })
+    const wrapper = mount(Provider, {
+      props: { [prop]: factory, theme: { token: { colorPrimary: 'red' } } },
+      slots: { default: () => h(Child) },
+    })
+    try {
+      const initial = wrapper.find('div').attributes('class')
+      expect(initial).toMatch(/^stylish-helper-/)
+      expect(manager.getStyles()).toContain(`.${initial}{color:red;}`)
+      await wrapper.setProps({ theme: { token: { colorPrimary: 'blue' } } })
+      const updated = wrapper.find('div').attributes('class')
+      expect(updated).not.toBe(initial)
+      expect(manager.getStyles()).toContain(`.${updated}{color:blue;}`)
+    } finally {
+      wrapper.unmount()
+      engine.flush()
+    }
+  })
+
+  const HashConsumer = defineComponent({
+    setup() {
+      const config = useConfig()
+      return () => h('div', { 'data-hashed': String(config.value.theme?.hashed) })
+    },
+  })
+
+  it('enables component hash isolation by default', () => {
+    const wrapper = mount(ThemeProvider, { slots: { default: () => h(HashConsumer) } })
+    expect(wrapper.find('div').attributes('data-hashed')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('preserves an explicit hash opt-out and reactive changes', async () => {
+    const wrapper = mount(ThemeProvider, {
+      props: { theme: { hashed: false } },
+      slots: { default: () => h(HashConsumer) },
+    })
+    expect(wrapper.find('div').attributes('data-hashed')).toBe('false')
+    await wrapper.setProps({ theme: { hashed: true } })
+    expect(wrapper.find('div').attributes('data-hashed')).toBe('true')
+    await wrapper.setProps({ theme: {} })
+    expect(wrapper.find('div').attributes('data-hashed')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it.each([true, false])('inherits ancestor hashed=%s unless locally overridden', async (hashed) => {
+    const wrapper = mount(ConfigProvider, {
+      props: { theme: { hashed } },
+      slots: { default: () => h(ThemeProvider, null, { default: () => h(HashConsumer) }) },
+    })
+    expect(wrapper.find('div').attributes('data-hashed')).toBe(String(hashed))
+    await wrapper.setProps({ theme: { hashed: !hashed } })
+    expect(wrapper.find('div').attributes('data-hashed')).toBe(String(!hashed))
+    wrapper.unmount()
+    const overridden = mount(ConfigProvider, {
+      props: { theme: { hashed } },
+      slots: { default: () => h(ThemeProvider, { theme: { hashed: !hashed } }, {
+        default: () => h(HashConsumer),
+      }) },
+    })
+    expect(overridden.find('div').attributes('data-hashed')).toBe(String(!hashed))
+    overridden.unmount()
+  })
+
+  it.each(['appearance', 'themeMode'] as const)('notifies controlled %s requests once without changing rejected state', async (property) => {
+    let mode!: ThemeModeContext
+    const callback = vi.fn()
+    const Child = defineComponent({
+      setup() {
+        mode = inject(ThemeModeKey)!
+        return () => h('div', mode.appearance.value)
+      },
+    })
+    const wrapper = mount(ThemeProvider, {
+      props: property === 'appearance'
+        ? { appearance: 'light', onAppearanceChange: callback }
+        : { themeMode: 'light', onThemeModeChange: callback },
+      slots: { default: () => h(Child) },
+    })
+    const setter = property === 'appearance' ? mode.setAppearance : mode.setThemeMode
+    setter('dark')
+    await nextTick()
+    expect(callback).toHaveBeenCalledExactlyOnceWith('dark')
+    expect(wrapper.text()).toBe('light')
+    await wrapper.setProps({ [property]: 'dark' })
+    expect(wrapper.text()).toBe('dark')
+    expect(callback).toHaveBeenCalledTimes(1)
+    await wrapper.setProps({ [property]: 'light' })
+    expect(callback).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
+  })
+
   it('should provide default theme context', () => {
     const wrapper = mount(ThemeProvider, {
       slots: { default: () => h(Consumer) },
@@ -56,6 +165,54 @@ describe('ThemeProvider', () => {
     expect(wrapper.find('div').attributes('data-prefix')).toBe('my-app')
   })
 
+  it('should inherit prefixes from a parent ThemeProvider', () => {
+    const PrefixConsumer = defineComponent({
+      setup() {
+        const themeCtx = inject(ThemeContextKey)!
+        return () => h('div', {
+          'data-prefix': themeCtx.prefixCls.value,
+          'data-icon-prefix': themeCtx.iconPrefixCls.value,
+        })
+      },
+    })
+
+    const wrapper = mount(ThemeProvider, {
+      props: { prefixCls: 'outer', iconPrefixCls: 'outer-icon' },
+      slots: {
+        default: () => h(ThemeProvider, null, {
+          default: () => h(PrefixConsumer),
+        }),
+      },
+    })
+
+    expect(wrapper.find('div').attributes('data-prefix')).toBe('outer')
+    expect(wrapper.find('div').attributes('data-icon-prefix')).toBe('outer-icon')
+  })
+
+  it('should inherit prefixes from antdv-next ConfigProvider', () => {
+    const PrefixConsumer = defineComponent({
+      setup() {
+        const themeCtx = inject(ThemeContextKey)!
+        return () => h('div', {
+          'data-prefix': themeCtx.prefixCls.value,
+          'data-icon-prefix': themeCtx.iconPrefixCls.value,
+        })
+      },
+    })
+
+    const wrapper = mount(ConfigProvider, {
+      props: { prefixCls: 'host', iconPrefixCls: 'host-icon' },
+      slots: {
+        default: () => h(ThemeProvider, null, {
+          default: () => h(PrefixConsumer),
+        }),
+      },
+    })
+
+    expect(wrapper.find('div').attributes('data-prefix')).toBe('host')
+    expect(wrapper.find('div').attributes('data-icon-prefix')).toBe('host-icon')
+  })
+
   it('should merge customToken into theme', () => {
     const TokenConsumer = defineComponent({
       setup() {
@@ -76,11 +233,76 @@ describe('ThemeProvider', () => {
     expect(wrapper.find('div').attributes('data-brand')).toBe('#ff0000')
   })
 
+  it('should inherit custom tokens that override built-in token names', () => {
+    const TokenConsumer = defineComponent({
+      setup() {
+        const themeCtx = inject(ThemeContextKey)!
+        return () => h('div', {
+          'data-primary': themeCtx.theme.value.colorPrimary,
+          'data-brand': (themeCtx.theme.value as Theme & { brandColor?: string }).brandColor,
+        })
+      },
+    })
+
+    const wrapper = mount(ThemeProvider, {
+      props: { customToken: { colorPrimary: '#123456', brandColor: '#abcdef' } },
+      slots: {
+        default: () => h(ThemeProvider, null, {
+          default: () => h(TokenConsumer),
+        }),
+      },
+    })
+
+    expect(wrapper.find('div').attributes('data-primary')).toBe('#123456')
+    expect(wrapper.find('div').attributes('data-brand')).toBe('#abcdef')
+  })
+
   it('should use controlled appearance prop over themeMode', () => {
     const wrapper = mount(ThemeProvider, {
       props: { themeMode: 'light', appearance: 'dark' },
       slots: { default: () => h(Consumer) },
     })
+    expect(wrapper.find('div').attributes('data-appearance')).toBe('dark')
+  })
+
+  it('should fall back to themeMode after appearance becomes uncontrolled', async () => {
+    const wrapper = mount(ThemeProvider, {
+      props: { themeMode: 'light', appearance: 'dark' as string | undefined },
+      slots: { default: () => h(Consumer) },
+    })
+
+    await wrapper.setProps({ appearance: undefined })
+    await nextTick()
+
+    expect(wrapper.find('div').attributes('data-appearance')).toBe('light')
+  })
+
+  it('should let a nested local themeMode override the parent appearance', () => {
+    const wrapper = mount(ThemeProvider, {
+      props: { themeMode: 'dark' },
+      slots: {
+        default: () => h(ThemeProvider, { themeMode: 'light' }, {
+          default: () => h(Consumer),
+        }),
+      },
+    })
+
+    expect(wrapper.find('div').attributes('data-appearance')).toBe('light')
+  })
+
+  it('should reactively inherit parent appearance when no local mode is set', async () => {
+    const wrapper = mount(ThemeProvider, {
+      props: { themeMode: 'light' },
+      slots: {
+        default: () => h(ThemeProvider, null, {
+          default: () => h(Consumer),
+        }),
+      },
+    })
+
+    expect(wrapper.find('div').attributes('data-appearance')).toBe('light')
+    await wrapper.setProps({ themeMode: 'dark' })
+    await nextTick()
     expect(wrapper.find('div').attributes('data-appearance')).toBe('dark')
   })
 
@@ -118,5 +340,26 @@ describe('ThemeProvider', () => {
     await nextTick()
     expect(wrapper.emitted('appearanceChange')).toBeTruthy()
     expect(wrapper.emitted('appearanceChange')![0]).toEqual(['dark'])
+  })
+
+  it('should invoke change callbacks exactly once', async () => {
+    const onAppearanceChange = vi.fn()
+    const onThemeModeChange = vi.fn()
+    const wrapper = mount(ThemeProvider, {
+      props: {
+        themeMode: 'light',
+        onAppearanceChange,
+        onThemeModeChange,
+      },
+      slots: { default: () => h(Consumer) },
+    })
+
+    await wrapper.setProps({ themeMode: 'dark' })
+    await nextTick()
+
+    expect(onAppearanceChange).toHaveBeenCalledTimes(1)
+    expect(onAppearanceChange).toHaveBeenCalledWith('dark')
+    expect(onThemeModeChange).toHaveBeenCalledTimes(1)
+    expect(onThemeModeChange).toHaveBeenCalledWith('dark')
   })
 })

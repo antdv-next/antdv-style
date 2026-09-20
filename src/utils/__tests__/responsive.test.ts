@@ -3,12 +3,12 @@ import { responsiveHelpers, breakpoints } from '../responsive'
 
 describe('responsiveHelpers', () => {
   it('should provide max-width media queries matching antdv-next token values', () => {
-    expect(responsiveHelpers.xs).toBe('@media (max-width: 575px)')
-    expect(responsiveHelpers.sm).toBe('@media (max-width: 767px)')
-    expect(responsiveHelpers.md).toBe('@media (max-width: 991px)')
-    expect(responsiveHelpers.lg).toBe('@media (max-width: 1199px)')
-    expect(responsiveHelpers.xl).toBe('@media (max-width: 1599px)')
-    expect(responsiveHelpers.xxl).toBe('@media (min-width: 1600px)')
+    expect(responsiveHelpers.xs).toBe('@media (max-width: 479.98px)')
+    expect(responsiveHelpers.sm).toBe('@media (max-width: 575.98px)')
+    expect(responsiveHelpers.md).toBe('@media (max-width: 767.98px)')
+    expect(responsiveHelpers.lg).toBe('@media (max-width: 991.98px)')
+    expect(responsiveHelpers.xl).toBe('@media (max-width: 1199.98px)')
+    expect(responsiveHelpers.xxl).toBe('@media (min-width: 1200px)')
   })
 
   it('should provide device aliases', () => {

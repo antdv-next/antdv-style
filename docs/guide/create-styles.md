@@ -2,6 +2,40 @@
 
 用于创建具有 Token 访问能力的作用域组件样式的核心 API。
 
+<CreateStylesDemo />
+
+## 可运行示例
+
+### 普通样式对象
+
+<CreateStylesVariantsDemo variant="static" />
+
+### Token 与公共样式组合
+
+<CreateStylesVariantsDemo variant="tokens" />
+
+### Props 驱动 Select 覆写
+
+打开选择器时外轮廓变色，选择 Option 1 时切换背景。Vue 通过 props getter 追踪两种状态。
+
+<CreateStylesVariantsDemo variant="props" />
+
+### 独立样式文件与 cx
+
+搜索和选中命令共用独立的样式文件，选中项通过 `cx` 组合样式。
+
+<CreateStylesVariantsDemo variant="command" />
+
+<<< @/.vitepress/theme/components/examples/commandStyles.ts
+
+### 两种 Keyframes
+
+<CreateStylesVariantsDemo variant="keyframes" />
+
+完整 Vue 示例源码：
+
+<<< @/.vitepress/theme/components/CreateStylesVariantsDemo.vue
+
 ## 基础用法
 
 ```typescript

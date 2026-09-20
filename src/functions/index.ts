@@ -1,4 +1,5 @@
 export { createInstance } from './createInstance'
-export type { CreateInstanceOptions } from './createInstance'
+export type { CreateInstanceOptions, CreateInstanceResult } from './createInstance'
 export { extractStaticStyle } from './extractStaticStyle'
-export type { ExtractStyleResult } from './extractStaticStyle'
+export type { ExtractStyleResult, ExtractStyleOptions } from './extractStaticStyle'
+export { createStaticStylesFactory, staticStylesCache } from '../factories/createStaticStyles'

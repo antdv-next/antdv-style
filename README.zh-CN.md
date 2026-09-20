@@ -23,10 +23,29 @@ pnpm add antdv-style antdv-next
 
 ### 创建样式
 
+`ThemeProvider` 必须位于调用 `useStyles()` 的组件上层。根组件负责安装 Provider，子组件消费主题：
+
 ```vue
-<script setup>
+<!-- App.vue -->
+<script setup lang="ts">
 import { ConfigProvider } from 'antdv-next'
-import { ThemeProvider, createStyles } from 'antdv-style'
+import { ThemeProvider } from 'antdv-style'
+import StyledCard from './StyledCard.vue'
+</script>
+
+<template>
+  <ConfigProvider>
+    <ThemeProvider>
+      <StyledCard />
+    </ThemeProvider>
+  </ConfigProvider>
+</template>
+```
+
+```vue
+<!-- StyledCard.vue -->
+<script setup lang="ts">
+import { createStyles } from 'antdv-style'
 
 const useStyles = createStyles(({ token, css }) => ({
   // CSS 对象语法
@@ -55,16 +74,43 @@ const s = useStyles()
 </script>
 
 <template>
-  <ConfigProvider>
-    <ThemeProvider>
-      <div :class="s.styles.container">
-        <div :class="s.styles.card">createStyles 示例</div>
-        <div>当前主题：{{ s.theme.appearance }}</div>
-      </div>
-    </ThemeProvider>
-  </ConfigProvider>
+  <div :class="s.styles.container">
+    <div :class="s.styles.card">createStyles 示例</div>
+    <div>当前主题：{{ s.theme.appearance }}</div>
+  </div>
 </template>
 ```
+
+## Workspace
+
+`antdv-style` 主库继续保留在仓库根目录（`src/`、`dist/`、`package.json`）。
+`packages/` 下只拆出两个可选工具包：
+
+| 目录 | 包名 | 用途 |
+| --- | --- | --- |
+| `packages/vite-plugin-antdv-style` | `vite-plugin-antdv-style` | Vite 自动 label |
+| `packages/less2cssinjs` | `@antdv-next/less2cssinjs` | Vue Less 迁移 API 与 `antdv-style-codemod` CLI |
+
+两个工具拥有独立的依赖、导出和构建产物，不再作为主包子路径提供，也不会作为
+`antdv-style` 的生产依赖安装。仓库内拆包不代表已经发布到 npm；
+各包 README 提供本地打包安装方式。
+
+```sh
+pnpm install
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm docs:typecheck
+pnpm docs:build
+pnpm pack:packages
+pnpm test:packages
+```
+
+`pnpm build:core` 只构建主库。通过 `pnpm --filter vite-plugin-antdv-style build`
+或 `pnpm --filter @antdv-next/less2cssinjs build` 分别构建工具包。
+压缩包输出至 `artifacts/`；打包操作不会执行发布。
+`test:packages` 使用本地 pnpm 缓存，将各压缩包分别安装到临时目录，
+验证独立导入、类型、CLI 与主库 SSR。
 
 ## 许可证
 

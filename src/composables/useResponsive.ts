@@ -1,4 +1,5 @@
-import { reactive, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { theme } from 'antdv-next'
 import { isBrowser } from '../utils/env'
 import { breakpoints as bp } from '../utils/responsive'
 
@@ -24,31 +25,8 @@ export interface ResponsiveState {
   desktop: boolean
 }
 
-// matchMedia queries matching antdv-next's getResponsiveMap():
-// xs uses max-width, all others use min-width
-// Device aliases share queries with their corresponding breakpoints
-const mediaQueries: Record<keyof ResponsiveState, string> = {
-  xs: `(max-width: ${bp.xsMax}px)`,
-  sm: `(min-width: ${bp.sm}px)`,
-  md: `(min-width: ${bp.md}px)`,
-  lg: `(min-width: ${bp.lg}px)`,
-  xl: `(min-width: ${bp.xl}px)`,
-  xxl: `(min-width: ${bp.xxl}px)`,
-  mobile: `(max-width: ${bp.xsMax}px)`,
-  tablet: `(min-width: ${bp.md}px)`,
-  laptop: `(min-width: ${bp.lg}px)`,
-  desktop: `(min-width: ${bp.xxl}px)`,
-}
-
-// Shared singleton state
-let sharedState: ResponsiveState | null = null
-let subscriberCount = 0
-let cleanupListeners: (() => void) | null = null
-
-function getOrCreateSharedState(): ResponsiveState {
-  if (sharedState) return sharedState
-
-  sharedState = reactive<ResponsiveState>({
+function emptyState(): ResponsiveState {
+  return {
     xs: false,
     sm: false,
     md: false,
@@ -59,63 +37,79 @@ function getOrCreateSharedState(): ResponsiveState {
     tablet: false,
     laptop: false,
     desktop: false,
-  })
-
-  return sharedState
+  }
 }
 
-function setupListeners(state: ResponsiveState): void {
-  if (!isBrowser || typeof window.matchMedia !== 'function') return
-  if (cleanupListeners) return
+type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
+const aliases: Partial<Record<Breakpoint, keyof ResponsiveState>> = {
+  xs: 'mobile', md: 'tablet', lg: 'laptop', xxl: 'desktop',
+}
+interface Subscription {
+  state: ResponsiveState
+  subscribers: Set<ResponsiveState>
+  dispose: () => void
+}
+const subscriptions = new Map<string, Subscription>()
 
+function createSubscription(queries: Record<Breakpoint, string>): Subscription {
+  const state = emptyState()
+  const subscribers = new Set<ResponsiveState>()
   const removers: (() => void)[] = []
-
-  for (const [key, query] of Object.entries(mediaQueries)) {
+  for (const key of Object.keys(queries) as Breakpoint[]) {
+    const query = queries[key]
     const mql = window.matchMedia(query)
-    state[key as keyof ResponsiveState] = mql.matches
-
-    const handler = (e: MediaQueryListEvent) => {
-      state[key as keyof ResponsiveState] = e.matches
+    const handler = (e: Pick<MediaQueryListEvent, 'matches'>) => {
+      state[key] = e.matches
+      const alias = aliases[key]
+      if (alias) state[alias] = e.matches
+      subscribers.forEach(subscriber => Object.assign(subscriber, state))
     }
-
+    handler(mql)
     mql.addEventListener('change', handler)
     removers.push(() => mql.removeEventListener('change', handler))
   }
-
-  cleanupListeners = () => {
-    removers.forEach((fn) => fn())
-    cleanupListeners = null
-  }
+  return { state, subscribers, dispose: () => removers.forEach(remove => remove()) }
 }
 
-function teardownIfEmpty(): void {
-  if (subscriberCount <= 0 && cleanupListeners) {
-    cleanupListeners()
-  }
-}
-
-/** @internal Reset singleton state — only for testing */
+/** @internal Reset shared subscriptions only for testing. */
 export function _resetResponsiveForTesting(): void {
-  if (cleanupListeners) {
-    cleanupListeners()
-  }
-  sharedState = null
-  subscriberCount = 0
-  cleanupListeners = null
+  subscriptions.forEach(entry => entry.dispose())
+  subscriptions.clear()
 }
 
 export function useResponsive(): ResponsiveState {
-  const state = getOrCreateSharedState()
+  const { token } = theme.useToken()
+  const state = reactive(emptyState())
+  const queries = computed<Record<Breakpoint, string>>(() => ({
+    xs: `(max-width: ${token.value.screenXSMax ?? bp.xsMax}px)`,
+    sm: `(min-width: ${token.value.screenSM ?? bp.sm}px)`,
+    md: `(min-width: ${token.value.screenMD ?? bp.md}px)`,
+    lg: `(min-width: ${token.value.screenLG ?? bp.lg}px)`,
+    xl: `(min-width: ${token.value.screenXL ?? bp.xl}px)`,
+    xxl: `(min-width: ${token.value.screenXXL ?? bp.xxl}px)`,
+  }))
+  let stop: (() => void) | undefined
 
   onMounted(() => {
-    subscriberCount++
-    setupListeners(state)
+    if (!isBrowser || typeof window.matchMedia !== 'function') return
+    stop = watch(() => JSON.stringify(queries.value), (key, _previous, onCleanup) => {
+      let entry = subscriptions.get(key)
+      if (!entry) {
+        entry = createSubscription(queries.value)
+        subscriptions.set(key, entry)
+      }
+      const current = entry
+      current.subscribers.add(state)
+      Object.assign(state, current.state)
+      onCleanup(() => {
+        current.subscribers.delete(state)
+        if (!current.subscribers.size && subscriptions.get(key) === current) {
+          current.dispose()
+          subscriptions.delete(key)
+        }
+      })
+    }, { immediate: true })
   })
-
-  onUnmounted(() => {
-    subscriberCount--
-    teardownIfEmpty()
-  })
-
+  onUnmounted(() => stop?.())
   return state
 }

@@ -1,15 +1,21 @@
 import { inject, computed, reactive } from 'vue'
-import type { EmotionInstance } from '../../core'
+import { createCSS, type EmotionInstance } from '../../core'
 import type { CSSInterpolation } from '@emotion/css/create-instance'
-import type { CreateStylesUtils, CreateStylesReturn, CreateStylesOptions } from '../../types'
+import type {
+  CreateStylesUtils,
+  CreateStylesReturn,
+  CreateStylesOptions,
+  StyleInput,
+  StyleFactoryInput,
+  StyleResult,
+} from '../../types'
 import { ThemeContextKey, ThemeModeKey, StyleEngineKey } from '../../context'
 import type { ContextKeys } from '../../context'
 import { createResponsiveUtil } from '../../utils'
-import { createStyleCache } from './styleCache'
+import { createStyleCache, createStyleCacheKeyFactory } from './styleCache'
 
-type StyleValue = CSSInterpolation | string
-type StyleFactory<P> = (utils: CreateStylesUtils, props: P) => Record<string, StyleValue>
-type StyleOrFactory<P> = StyleFactory<P> | Record<string, StyleValue>
+type StyleFactory<P, T extends StyleFactoryInput = StyleInput> = (utils: CreateStylesUtils, props: P) => T
+type StyleOrFactory<P, T extends StyleFactoryInput = StyleInput> = StyleFactory<P, T> | T
 
 export interface MakeCreateStylesOptions {
   hashPriority?: 'high' | 'low'
@@ -23,12 +29,29 @@ export function makeCreateStyles(defaultEmotion: EmotionInstance, options?: Make
   const modeKey = keys?.themeModeKey ?? ThemeModeKey
   const engineKey = keys?.styleEngineKey ?? StyleEngineKey
 
-  return function createStyles<P = void>(factory: StyleOrFactory<P>, styleOptions?: CreateStylesOptions) {
+  return function createStyles<P = void, T extends StyleFactoryInput = StyleInput>(
+    factory: StyleOrFactory<P, T>,
+    styleOptions?: CreateStylesOptions,
+  ) {
     const effectiveLabel = styleOptions?.label
     const effectiveHashPriority = styleOptions?.hashPriority ?? globalHashPriority
     const cache = createStyleCache()
+    const createCacheKey = createStyleCacheKeyFactory()
+    const engineIds = new WeakMap<EmotionInstance['cache']['inserted'], number>()
+    let nextEngineId = 1
 
-    return function useStyles(propsOrGetter?: P | (() => P)): CreateStylesReturn {
+    const getEngineId = (engine: EmotionInstance) => {
+      // Emotion replaces inserted on flush; a new generation must regenerate cached rules.
+      const generation = engine.cache.inserted
+      let id = engineIds.get(generation)
+      if (id === undefined) {
+        id = nextEngineId++
+        engineIds.set(generation, id)
+      }
+      return id
+    }
+
+    return function useStyles(propsOrGetter?: P | (() => P)): CreateStylesReturn<StyleResult<T>> {
       const themeCtx = inject(themeKey)
       const modeCtx = inject(modeKey)
       const engine = inject(engineKey) ?? defaultEmotion
@@ -47,21 +70,22 @@ export function makeCreateStyles(defaultEmotion: EmotionInstance, options?: Make
         const themeValue = themeCtx.theme.value
         const props = resolvedProps.value as P
         const { isDarkMode, appearance, prefixCls, iconPrefixCls, stylish } = themeValue
-
-        // Build cache key from all reactive dependencies (assumes JSON-serializable values)
-        const cacheKey = JSON.stringify({ token: themeValue, props, isDarkMode, appearance, prefixCls, stylish })
+        const effectiveCssVar = themeCtx.cssVar?.value ?? cssVar
+        // One token reference identifies the proxy's prefix without tying reuse to object identity.
+        const inputsKey = createCacheKey(themeValue, props, effectiveCssVar.colorPrimary)
+        const cacheKey = inputsKey === undefined ? undefined : `${getEngineId(engine)}|${inputsKey}`
 
         return cache.getOrCompute(cacheKey, () => {
           const responsive = createResponsiveUtil(themeValue, engine)
-
-          // Prefer cssVar from ThemeContext (dynamic, from antdv-next ConfigProvider),
-          // fall back to the instance-level static cssVar proxy
-          const effectiveCssVar = themeCtx.cssVar?.value ?? cssVar
+          const { css, cx } = createCSS(engine.cache, {
+            hashPriority: effectiveHashPriority,
+            label: effectiveLabel,
+          })
 
           const utils: CreateStylesUtils = {
             token: themeValue,
-            css: engine.css,
-            cx: engine.cx,
+            css,
+            cx,
             prefixCls,
             iconPrefixCls,
             isDarkMode,
@@ -73,8 +97,10 @@ export function makeCreateStyles(defaultEmotion: EmotionInstance, options?: Make
 
           // Support both function factories and plain style objects
           const rawStyles = typeof factory === 'function'
-            ? factory(utils, props)
+            ? (factory as StyleFactory<P, T>)(utils, props)
             : factory
+
+          if (typeof rawStyles === 'string') return rawStyles
 
           const processed: Record<string, string> = {}
           for (const [key, value] of Object.entries(rawStyles)) {
@@ -82,14 +108,13 @@ export function makeCreateStyles(defaultEmotion: EmotionInstance, options?: Make
               processed[key] = value
             } else if (value != null) {
               if (effectiveLabel && typeof value === 'object') {
-                const labelled = { ...(value as Record<string, unknown>), label: `${effectiveLabel}-${key}` }
-                processed[key] = effectiveHashPriority === 'low'
-                  ? engine.css({ ':where(&)': labelled } as CSSInterpolation)
-                  : engine.css(labelled as CSSInterpolation)
+                const keyCss = createCSS(engine.cache, {
+                  hashPriority: effectiveHashPriority,
+                  label: `${effectiveLabel}-${key}`,
+                }).css
+                processed[key] = keyCss(value as CSSInterpolation)
               } else {
-                processed[key] = effectiveHashPriority === 'low'
-                  ? engine.css({ ':where(&)': value } as CSSInterpolation)
-                  : engine.css(value as CSSInterpolation)
+                processed[key] = css(value as CSSInterpolation)
               }
             }
           }
@@ -109,11 +134,11 @@ export function makeCreateStyles(defaultEmotion: EmotionInstance, options?: Make
       //   or in template: styles.container (auto-unwrapped)
       return reactive({
         styles,
-        cx: engine.cx,
+        cx: createCSS(engine.cache, { hashPriority: effectiveHashPriority }).cx,
         theme: themeCtx.theme,
         prefixCls: themeCtx.prefixCls,
         iconPrefixCls: themeCtx.iconPrefixCls,
-      }) as CreateStylesReturn
+      }) as CreateStylesReturn<StyleResult<T>>
     }
   }
 }

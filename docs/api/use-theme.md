@@ -1,5 +1,7 @@
 # useTheme
 
+<RuntimeCapabilitiesDemo variant="theme" />
+
 在组件内访问完整的已解析主题 Token。
 
 ## 签名

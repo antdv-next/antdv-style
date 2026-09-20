@@ -1,5 +1,11 @@
 # 暗色模式
 
+<ThemeVariantsDemo variant="controlled" />
+
+<RuntimeCapabilitiesDemo variant="nested" />
+
+<ThemeSwitchDemo />
+
 ## 主题模式
 
 `ThemeProvider` 通过 `themeMode` 支持三种模式：

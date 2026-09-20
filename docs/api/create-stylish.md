@@ -1,5 +1,7 @@
 # createStylish
 
+<RuntimeCapabilitiesDemo variant="stylish" />
+
 创建一组基于主题 Token 派生的、可复用的具名 class name 预设。
 
 ## 签名

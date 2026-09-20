@@ -27,7 +27,7 @@ interface ThemeModeContext {
 | `appearance` | The effective appearance after resolving `'auto'` against `browserPrefers`. |
 | `isDarkMode` | Shorthand boolean for `appearance === 'dark'`. |
 | `browserPrefers` | The OS/browser color scheme preference detected via `prefers-color-scheme`. |
-| `setAppearance` | Directly set the resolved appearance (sets `themeMode` to the given value). |
+| `setAppearance` | Override the appearance without changing `themeMode`. |
 | `setThemeMode` | Set the theme mode, including `'auto'`. |
 
 ## Example
@@ -52,3 +52,4 @@ const { appearance, isDarkMode, setThemeMode } = useThemeMode()
 - Must be called within a component that is a descendant of `<ThemeProvider>`. Throws if no provider is found.
 - All returned refs and computed values are reactive.
 - When `themeMode` is `'auto'`, `appearance` derives from `browserPrefers` which is kept in sync via `matchMedia`.
+- An uncontrolled appearance override lasts until the next `setThemeMode` call. Controlled setters request parent updates through `appearanceChange` / `themeModeChange`; the effective value stays unchanged until the parent updates the prop.

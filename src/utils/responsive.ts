@@ -30,14 +30,14 @@ export const breakpoints = {
  * CSS media query helpers for use in createStaticStyles.
  */
 export const responsiveHelpers: ResponsiveHelpers = {
-  xs: `@media (max-width: ${breakpoints.xsMax}px)`,
-  sm: `@media (max-width: ${breakpoints.smMax}px)`,
-  md: `@media (max-width: ${breakpoints.mdMax}px)`,
-  lg: `@media (max-width: ${breakpoints.lgMax}px)`,
-  xl: `@media (max-width: ${breakpoints.xlMax}px)`,
-  xxl: `@media (min-width: ${breakpoints.xxl}px)`,
-  mobile: `@media (max-width: ${breakpoints.xsMax}px)`,
-  tablet: `@media (max-width: ${breakpoints.mdMax}px)`,
-  laptop: `@media (max-width: ${breakpoints.lgMax}px)`,
-  desktop: `@media (min-width: ${breakpoints.xxl}px)`,
+  xs: '@media (max-width: 479.98px)',
+  sm: '@media (max-width: 575.98px)',
+  md: '@media (max-width: 767.98px)',
+  lg: '@media (max-width: 991.98px)',
+  xl: '@media (max-width: 1199.98px)',
+  xxl: '@media (min-width: 1200px)',
+  mobile: '@media (max-width: 479.98px)',
+  tablet: '@media (max-width: 767.98px)',
+  laptop: '@media (max-width: 991.98px)',
+  desktop: '@media (min-width: 1200px)',
 }

@@ -27,7 +27,7 @@ interface ThemeModeContext {
 | `appearance` | 将 `'auto'` 解析为 `browserPrefers` 后的实际外观。 |
 | `isDarkMode` | `appearance === 'dark'` 的布尔简写。 |
 | `browserPrefers` | 通过 `prefers-color-scheme` 检测到的系统/浏览器颜色方案偏好。 |
-| `setAppearance` | 直接设置解析后的外观（将 `themeMode` 设置为给定值）。 |
+| `setAppearance` | 覆盖外观，不改变 `themeMode`。 |
 | `setThemeMode` | 设置主题模式，包括 `'auto'`。 |
 
 ## 示例
@@ -52,3 +52,4 @@ const { appearance, isDarkMode, setThemeMode } = useThemeMode()
 - 必须在 `<ThemeProvider>` 的后代组件中调用。若找不到 Provider，会抛出错误。
 - 所有返回的 ref 和 computed 值均为响应式。
 - 当 `themeMode` 为 `'auto'` 时，`appearance` 派生自 `browserPrefers`，后者通过 `matchMedia` 保持同步。
+- `setAppearance` 的非受控覆盖持续到下一次 `setThemeMode`。受控 `appearance` / `themeMode` 通过对应的 `appearanceChange` / `themeModeChange` 事件请求父级更新；父级不更新 prop 时，当前值保持不变。
