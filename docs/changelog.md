@@ -1,5 +1,14 @@
 # 更新日志
 
+## 1.0.0
+
+`antdv-style` 首个正式版本，提供稳定的 Vue 3 CSS-in-JS 运行时能力：
+
+- Vue 3 `ThemeProvider` 与 `StyleProvider`；
+- `createStyles`、`createStaticStyles`、`createGlobalStyle` 和 `createStylish`；
+- 主题、Token、Stylish、响应式、多实例、CSS 变量与 SSR 抽取工具；
+- 面向 antdv-next 的亮暗主题和静态反馈实例集成。
+
 ## 1.0.0-rc.1
 
 当前候选版本提供：
